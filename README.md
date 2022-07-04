@@ -2,6 +2,16 @@
 
 **迁移[PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP)中的UIE模型到PyTorch上**
 
+PyTorch版功能介绍
+- `convert.py`: 自动下载并转换模型，详见[开箱即用](#开箱即用)。
+- `doccano.py`: 转换标注数据，详见[数据标注](#数据标注)。
+- `evaluate.py`: 评估模型，详见[模型评估](#模型评估)。
+- `export_model.py`: 导出ONNX推理模型，详见[模型导出](#模型导出)。
+- `finetune.py`: 微调训练，详见[模型微调](#模型微调)。
+- `model.py`: 模型定义。
+- `uie_predictor.py`: 推理类。
+
+
 **目录**
 
 - [1. 模型简介](#模型简介)
@@ -59,7 +69,7 @@ UIE不限定行业领域和抽取目标，以下是一些零样本行业示例�
 
 ```uie_predictor```提供通用信息抽取、评价观点抽取等能力，可抽取多种类型的信息，包括但不限于命名实体识别（如人名、地名、机构名等）、关系（如电影的导演、歌曲的发行时间等）、事件（如某路口发生车祸、某地发生地震等）、以及评价维度、观点词、情感倾向等信息。用户可以使用自然语言自定义抽取目标，无需训练即可统一抽取输入文本中的对应信息。**实现开箱即用，并满足各类信息抽取需求**
 
-**自动下载并转换模型**，将自动下载Paddle版的uie-base模型到当前目录中，并生成PyTorch版模型uie_base_pytorch。
+**自动下载并转换模型**，将自动下载Paddle版的`uie-base`模型到当前目录中，并生成PyTorch版模型`uie_base_pytorch`。
 
 ```shell
 python convert.py
@@ -390,6 +400,7 @@ python convert.py --no_validate_output
 └── README.md
 ```
 
+<a name="数据标注"></a>
 #### 数据标注
 
 我们推荐使用数据标注平台[doccano](https://github.com/doccano/doccano) 进行数据标注，本示例也打通了从标注到训练的通道，即doccano导出数据后可通过[doccano.py](./doccano.py)脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。
@@ -448,6 +459,7 @@ python doccano.py \
 
 更多**不同类型任务（关系抽取、事件抽取、评价观点抽取等）的标注规则及参数说明**，请参考[doccano数据标注指南](doccano.md)。
 
+<a name="模型微调"></a>
 #### 模型微调
 
 通过运行以下命令进行模型微调：
@@ -483,6 +495,7 @@ python finetune.py \
 - `valid_steps`: evaluate的间隔steps数，默认100。
 - `device`: 选用什么设备进行训练，可选cpu或gpu。
 
+<a name="模型评估"></a>
 #### 模型评估
 
 通过运行以下命令进行模型评估：
@@ -573,7 +586,7 @@ python evaluate.py \
     如需使用半精度（FP16）部署，请确保GPU设备的CUDA计算能力 (CUDA Compute Capability) 大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。
     更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)
 
-
+<a name="模型导出"></a>
 - 模型导出
 
   将训练后的动态图参数导出为静态图参数：
