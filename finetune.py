@@ -218,12 +218,10 @@ if __name__ == "__main__":
                         help="The interval steps to evaluate model performance.")
     parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu",
                         help="Select which device to train model, defaults to gpu.")
-    parser.add_argument("--model", default="uie-base", type=str,
+    parser.add_argument("--model", default="uie_base_pytorch", type=str,
                         help="Select the pretrained model for few-shot learning.")
     parser.add_argument("--early_stopping", action='store_true', default=False,
                         help="Use early stopping while training")
-    # parser.add_argument("--init_from_ckpt", default=None, type=str,
-    #                     help="The path of model parameters for initialization.")
 
     args = parser.parse_args()
 
