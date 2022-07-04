@@ -9,27 +9,29 @@
 - [3. 开箱即用](#开箱即用)
 - [4. 轻定制功能](#轻定制功能)
 
-`<a name="模型简介"></a>`
+<a name="模型简介"></a>
 
 ## 1. 模型简介
 
-[UIE(Universal Information Extraction)](https://arxiv.org/pdf/2203.12277.pdf)：Yaojie Lu 等人在 ACL-2022 中提出了通用信息抽取统一框架 UIE。该框架实现了实体抽取、关系抽取、事件抽取、情感分析等任务的统一建模，并使得不同任务间具备良好的迁移和泛化能力。为了方便大家使用 UIE 的强大能力，PaddleNLP 借鉴该论文的方法，基于 ERNIE 3.0 知识增强预训练模型，训练并开源了首个中文通用信息抽取模型 UIE。该模型可以支持不限定行业领域和抽取目标的关键信息抽取，实现零样本快速冷启动，并具备优秀的小样本微调能力，快速适配特定的抽取目标。
+[UIE(Universal Information Extraction)](https://arxiv.org/pdf/2203.12277.pdf)：Yaojie Lu等人在ACL-2022中提出了通用信息抽取统一框架UIE。该框架实现了实体抽取、关系抽取、事件抽取、情感分析等任务的统一建模，并使得不同任务间具备良好的迁移和泛化能力。为了方便大家使用UIE的强大能力，PaddleNLP借鉴该论文的方法，基于ERNIE 3.0知识增强预训练模型，训练并开源了首个中文通用信息抽取模型UIE。该模型可以支持不限定行业领域和抽取目标的关键信息抽取，实现零样本快速冷启动，并具备优秀的小样本微调能力，快速适配特定的抽取目标。
 
 <div align="center">
     <img src=https://user-images.githubusercontent.com/40840292/167236006-66ed845d-21b8-4647-908b-e1c6e7613eb1.png height=400 hspace='10'/>
 </div>
 
-#### UIE 的优势
+#### UIE的优势
 
 - **使用简单**：用户可以使用自然语言自定义抽取目标，无需训练即可统一抽取输入文本中的对应信息。**实现开箱即用，并满足各类信息抽取需求**。
+
 - **降本增效**：以往的信息抽取技术需要大量标注数据才能保证信息抽取的效果，为了提高开发过程中的开发效率，减少不必要的重复工作时间，开放域信息抽取可以实现零样本（zero-shot）或者少样本（few-shot）抽取，**大幅度降低标注数据依赖，在降低成本的同时，还提升了效果**。
+
 - **效果领先**：开放域信息抽取在多种场景，多种任务上，均有不俗的表现。
 
-`<a name="应用示例"></a>`
+<a name="应用示例"></a>
 
 ## 2. 应用示例
 
-UIE 不限定行业领域和抽取目标，以下是一些零样本行业示例：
+UIE不限定行业领域和抽取目标，以下是一些零样本行业示例：
 
 - 医疗场景-专病结构化
 
@@ -51,25 +53,47 @@ UIE 不限定行业领域和抽取目标，以下是一些零样本行业示例�
 
 ![image](https://user-images.githubusercontent.com/40840292/169018113-c937eb0b-9fd7-4ecc-8615-bcdde2dac81d.png)
 
-`<a name="开箱即用"></a>`
+<a name="开箱即用"></a>
 
 ## 3. 开箱即用
 
-`paddlenlp.Taskflow`提供通用信息抽取、评价观点抽取等能力，可抽取多种类型的信息，包括但不限于命名实体识别（如人名、地名、机构名等）、关系（如电影的导演、歌曲的发行时间等）、事件（如某路口发生车祸、某地发生地震等）、以及评价维度、观点词、情感倾向等信息。用户可以使用自然语言自定义抽取目标，无需训练即可统一抽取输入文本中的对应信息。**实现开箱即用，并满足各类信息抽取需求**
+```uie_predictor```提供通用信息抽取、评价观点抽取等能力，可抽取多种类型的信息，包括但不限于命名实体识别（如人名、地名、机构名等）、关系（如电影的导演、歌曲的发行时间等）、事件（如某路口发生车祸、某地发生地震等）、以及评价维度、观点词、情感倾向等信息。用户可以使用自然语言自定义抽取目标，无需训练即可统一抽取输入文本中的对应信息。**实现开箱即用，并满足各类信息抽取需求**
 
-**自动下载并转换模型**，将自动下载Paddle版的uie-base模型到当前目录中，并生成PyTorch版模型uie_base_pytorch
+**自动下载并转换模型**，将自动下载Paddle版的uie-base模型到当前目录中，并生成PyTorch版模型uie_base_pytorch。
 
 ```shell
 python convert.py
 ```
 
+如果没有安装paddlenlp，则使用以下命令。这将不会导入paddlenlp，以及不会验证转换结果正确性。
+
+```shell
+python convert.py --no_validate_output
+```
+
+可配置参数说明：
+
+- `input_model`: 输入的模型所在的文件夹，例如存在模型`./model_path/model_state.pdparams`，则传入`./model_path`。如果传入`uie-base`或`uie-tiny`等在模型列表中的模型，且当前目录不存在此文件夹时，将自动下载模型。默认值为`uie-base`。
+  
+  支持自动下载的模型
+  - `uie-base`
+  - `uie-medium`
+  - `uie-mini`
+  - `uie-micro`
+  - `uie-nano`
+  - `uie-medical-base`
+  - `uie-tiny` (弃用，已改为`uie-medium`)
+
+- `output_model`: 输出的模型的文件夹，默认为`uie_base_pytorch`。
+- `no_validate_output`：是否关闭对输出模型的验证，默认打开。
+
 #### 支持多场景信息抽取任务
 
 - 命名实体识别
 
-  命名实体识别（Named Entity Recognition，简称 NER），是指识别文本中具有特定意义的实体。在开放域信息抽取中，抽取的类别没有限制，用户可以自己定义。
+  命名实体识别（Named Entity Recognition，简称NER），是指识别文本中具有特定意义的实体。在开放域信息抽取中，抽取的类别没有限制，用户可以自己定义。
 
-  例如抽取的目标实体类型是"时间"、"选手"和"赛事名称", schema 构造如下：
+  例如抽取的目标实体类型是"时间"、"选手"和"赛事名称", schema构造如下：
 
   ```text
   ['时间', '选手', '赛事名称']
@@ -98,13 +122,13 @@ python convert.py
             'text': '谷爱凌'}]}]
   ```
 
-  例如抽取的目标实体类型是"肿瘤的大小"、"肿瘤的个数"、"肝癌级别"和"脉管内癌栓分级", schema 构造如下：
+  例如抽取的目标实体类型是"肿瘤的大小"、"肿瘤的个数"、"肝癌级别"和"脉管内癌栓分级", schema构造如下：
 
   ```text
   ['肿瘤的大小', '肿瘤的个数', '肝癌级别', '脉管内癌栓分级']
   ```
 
-  在上例中我们已经实例化了一个 `Taskflow`对象，这里可以通过 `set_schema`方法重置抽取目标。
+  在上例中我们已经实例化了一个`UIEPredictor`对象，这里可以通过`set_schema`方法重置抽取目标。
 
   预测：
 
@@ -129,11 +153,12 @@ python convert.py
                 'start': 67,
                 'text': 'M0级'}]}]
   ```
+
 - 关系抽取
 
-  关系抽取（Relation Extraction，简称 RE），是指从文本中识别实体并抽取实体之间的语义关系，进而获取三元组信息，即<主体，谓语，客体>。
+  关系抽取（Relation Extraction，简称RE），是指从文本中识别实体并抽取实体之间的语义关系，进而获取三元组信息，即<主体，谓语，客体>。
 
-  例如以"竞赛名称"作为抽取主体，抽取关系类型为"主办方"、"承办方"和"已举办次数", schema 构造如下：
+  例如以"竞赛名称"作为抽取主体，抽取关系类型为"主办方"、"承办方"和"已举办次数", schema构造如下：
 
   ```text
   {
@@ -180,11 +205,12 @@ python convert.py
               'start': 0,
               'text': '2022语言与智能技术竞赛'}]}]
   ```
+
 - 事件抽取
 
-  事件抽取 (Event Extraction, 简称 EE)，是指从自然语言文本中抽取预定义的事件触发词和事件要素，组合为相应的结构化信息。
+  事件抽取 (Event Extraction, 简称EE)，是指从自然语言文本中抽取预定义的事件触发词和事件要素，组合为相应的结构化信息。
 
-  例如抽取的目标是"地震"事件的"地震强度"、"时间"、"震中位置"和"震源深度"这些信息，schema 构造如下：
+  例如抽取的目标是"地震"事件的"地震强度"、"时间"、"震中位置"和"震源深度"这些信息，schema构造如下：
 
   ```text
   {
@@ -197,7 +223,7 @@ python convert.py
   }
   ```
 
-  触发词的格式统一为 `XX触发词`，`XX`表示具体事件类型，上例中的事件类型是 `地震`，则对应触发词为 `地震触发词`。
+  触发词的格式统一为`XX触发词`，`XX`表示具体事件类型，上例中的事件类型是`地震`，则对应触发词为`地震触发词`。
 
   预测：
 
@@ -207,11 +233,12 @@ python convert.py
   >>> ie('中国地震台网正式测定：5月16日06时08分在云南临沧市凤庆县(北纬24.34度，东经99.98度)发生3.5级地震，震源深度10千米。')
   [{'地震触发词': [{'text': '地震', 'start': 56, 'end': 58, 'probability': 0.9987181623528585, 'relations': {'地震强度': [{'text': '3.5级', 'start': 52, 'end': 56, 'probability': 0.9962985320905915}], '时间': [{'text': '5月16日06时08分', 'start': 11, 'end': 22, 'probability': 0.9882578028575182}], '震中位置': [{'text': '云南临沧市凤庆县(北纬24.34度，东经99.98度)', 'start': 23, 'end': 50, 'probability': 0.8551415716584501}], '震源深度': [{'text': '10千米', 'start': 63, 'end': 67, 'probability': 0.999158304648045}]}}]}]
   ```
+
 - 评论观点抽取
 
   评论观点抽取，是指抽取文本中包含的评价维度、观点词。
 
-  例如抽取的目标是文本中包含的评价维度及其对应的观点词和情感倾向，schema 构造如下：
+  例如抽取的目标是文本中包含的评价维度及其对应的观点词和情感倾向，schema构造如下：
 
   ```text
   {
@@ -249,9 +276,10 @@ python convert.py
               'start': 0,
               'text': '店面'}]}]
   ```
+
 - 情感倾向分类
 
-  句子级情感倾向分类，即判断句子的情感倾向是“正向”还是“负向”，schema 构造如下：
+  句子级情感倾向分类，即判断句子的情感倾向是“正向”还是“负向”，schema构造如下：
 
   ```text
   '情感倾向[正向，负向]'
@@ -265,9 +293,10 @@ python convert.py
   >>> ie('这个产品用起来真的很流畅，我非常喜欢')
   [{'情感倾向[正向，负向]': [{'text': '正向', 'probability': 0.9988661643929895}]}]
   ```
+
 - 跨任务抽取
 
-  例如在法律场景同时对文本进行实体抽取和关系抽取，schema 可按照如下方式进行构造：
+  例如在法律场景同时对文本进行实体抽取和关系抽取，schema可按照如下方式进行构造：
 
   ```text
   [
@@ -309,16 +338,22 @@ python convert.py
             'text': 'B公司'}]}]
   ```
 
+
 #### 多模型选择，满足精度、速度要求
 
 - 模型选择
 
-  |         模型         |              结构              |
-  | :------------------: | :-----------------------------: |
-  |     `uie-tiny`     | 6-layers, 768-hidden, 12-heads |
-  | `uie-base` (默认) | 12-layers, 768-hidden, 12-heads |
+  | 模型 |  结构  |
+  | :---: | :--------: |
+  | `uie-base` (默认)| 12-layers, 768-hidden, 12-heads |
+  | `uie-tiny`(弃用，已改为`uie-medium`)| 6-layers, 768-hidden, 12-heads |
+  | `uie-medium`| 6-layers, 768-hidden, 12-heads |
+  | `uie-mini`| 6-layers, 384-hidden, 12-heads |
+  | `uie-micro`| 4-layers, 384-hidden, 12-heads |
+  | `uie-nano`| 4-layers, 312-hidden, 12-heads |
   | `uie-medical-base` | 12-layers, 768-hidden, 12-heads |
-- 使用 `UIE-Tiny`进行预测
+
+- 使用`UIE-Tiny`进行预测
 
   ```python
   >>> from uie_predictor import UIEPredictor
@@ -330,18 +365,17 @@ python convert.py
   ```
 
 #### 可配置参数说明
+* `batch_size`：批处理大小，请结合机器情况进行调整，默认为1。
+* `task_path`：任务使用的模型。
+* `schema`：定义任务抽取目标，可参考示例中对于不同信息抽取任务的schema配置自定义抽取目标。
+* `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
+* `use_fp16`：选择模型精度，默认为`fp32`，可选有`fp16`和`fp32`。`fp16`推理速度更快。如果选择`fp16`，请先确保机器正确安装NVIDIA相关驱动和基础软件，**确保CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保GPU设备的CUDA计算能力（CUDA Compute Capability）大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
 
-- `batch_size`：批处理大小，请结合机器情况进行调整，默认为 1。
-- `model`：选择任务使用的模型，默认为 `uie-base`，可选有 `uie-tiny`，`uie-base`和 `uie-medical-base`。
-- `schema`：定义任务抽取目标，可参考示例中对于不同信息抽取任务的 schema 配置自定义抽取目标。
-- `position_prob`：模型对于 span 的起始位置/终止位置的结果概率 0~1 之间，返回结果去掉小于这个阈值的结果，默认为 0.5，span 的最终概率输出为起始位置概率和终止位置概率的乘积。
-- `precision`：选择模型精度，默认为 `fp32`，可选有 `fp16`和 `fp32`。`fp16`推理速度更快。如果选择 `fp16`，请先确保机器正确安装 NVIDIA 相关驱动和基础软件，**确保 CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保 GPU 设备的 CUDA 计算能力（CUDA Compute Capability）大于 7.0，典型的设备包括 V100、T4、A10、A100、GTX 20 系列和 30 系列显卡等。更多关于 CUDA Compute Capability 和精度支持情况请参考 NVIDIA 文档：[GPU 硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
-
-`<a name="轻定制功能"></a>`
+<a name="轻定制功能"></a>
 
 ## 4. 轻定制功能
 
-对于简单的抽取目标可以直接使用 `paddlenlp.Taskflow`实现零样本（zero-shot）抽取，对于细分场景我们推荐使用轻定制功能（标注少量数据进行模型微调）以进一步提升效果。下面通过 `报销工单信息抽取`的例子展示如何通过 5 条训练数据进行 UIE 模型微调。
+对于简单的抽取目标可以直接使用```UIEPredictor```实现零样本（zero-shot）抽取，对于细分场景我们推荐使用轻定制功能（标注少量数据进行模型微调）以进一步提升效果。下面通过`报销工单信息抽取`的例子展示如何通过5条训练数据进行UIE模型微调。
 
 #### 代码结构
 
@@ -358,7 +392,7 @@ python convert.py
 
 #### 数据标注
 
-我们推荐使用数据标注平台[doccano](https://github.com/doccano/doccano) 进行数据标注，本示例也打通了从标注到训练的通道，即 doccano 导出数据后可通过[doccano.py](./doccano.py)脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。
+我们推荐使用数据标注平台[doccano](https://github.com/doccano/doccano) 进行数据标注，本示例也打通了从标注到训练的通道，即doccano导出数据后可通过[doccano.py](./doccano.py)脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。
 
 原始数据示例：
 
@@ -374,16 +408,17 @@ schema = ['出发地', '目的地', '费用', '时间']
 
 标注步骤如下：
 
-- 在 doccano 平台上，创建一个类型为 `序列标注`的标注项目。
-- 定义实体标签类别，上例中需要定义的实体标签有 `出发地`、`目的地`、`费用`和 `时间`。
-- 使用以上定义的标签开始标注数据，下面展示了一个 doccano 标注示例：
+- 在doccano平台上，创建一个类型为``序列标注``的标注项目。
+- 定义实体标签类别，上例中需要定义的实体标签有``出发地``、``目的地``、``费用``和``时间``。
+- 使用以上定义的标签开始标注数据，下面展示了一个doccano标注示例：
 
 <div align="center">
     <img src=https://user-images.githubusercontent.com/40840292/167336891-afef1ad5-8777-456d-805b-9c65d9014b80.png height=100 hspace='10'/>
 </div>
 
-- 标注完成后，在 doccano 平台上导出文件，并将其重命名为 `doccano_ext.json`后，放入 `./data`目录下。
-- 这里我们提供预先标注好的文件[doccano_ext.json](https://bj.bcebos.com/paddlenlp/datasets/uie/doccano_ext.json)，可直接下载并放入 `./data`目录。执行以下脚本进行数据转换，执行后会在 `./data`目录下生成训练/验证/测试集文件。
+- 标注完成后，在doccano平台上导出文件，并将其重命名为``doccano_ext.json``后，放入``./data``目录下。
+
+- 这里我们提供预先标注好的文件[doccano_ext.json](https://bj.bcebos.com/paddlenlp/datasets/uie/doccano_ext.json)，可直接下载并放入`./data`目录。执行以下脚本进行数据转换，执行后会在`./data`目录下生成训练/验证/测试集文件。
 
 ```shell
 python doccano.py \
@@ -395,24 +430,23 @@ python doccano.py \
 
 可配置参数说明：
 
-- `doccano_file`: 从 doccano 导出的数据标注文件。
-- `save_dir`: 训练数据的保存目录，默认存储在 `data`目录下。
-- `negative_ratio`: 最大负例比例，该参数只对抽取类型任务有效，适当构造负例可提升模型效果。负例数量和实际的标签数量有关，最大负例数量 = negative_ratio \* 正例数量。该参数只对训练集有效，默认为 5。为了保证评估指标的准确性，验证集和测试集默认构造全负例。
-- `splits`: 划分数据集时训练集、验证集所占的比例。默认为[0.8, 0.1, 0.1]表示按照 `8:1:1`的比例将数据划分为训练集、验证集和测试集。
-- `task_type`: 选择任务类型，可选有抽取和分类两种类型的任务。
-- `options`: 指定分类任务的类别标签，该参数只对分类类型任务有效。
-- `prompt_prefix`: 声明分类任务的 prompt 前缀信息，该参数只对分类类型任务有效。
-- `is_shuffle`: 是否对数据集进行随机打散，默认为 True。
-- `seed`: 随机种子，默认为 1000.
+- ``doccano_file``: 从doccano导出的数据标注文件。
+- ``save_dir``: 训练数据的保存目录，默认存储在``data``目录下。
+- ``negative_ratio``: 最大负例比例，该参数只对抽取类型任务有效，适当构造负例可提升模型效果。负例数量和实际的标签数量有关，最大负例数量 = negative_ratio * 正例数量。该参数只对训练集有效，默认为5。为了保证评估指标的准确性，验证集和测试集默认构造全负例。
+- ``splits``: 划分数据集时训练集、验证集所占的比例。默认为[0.8, 0.1, 0.1]表示按照``8:1:1``的比例将数据划分为训练集、验证集和测试集。
+- ``task_type``: 选择任务类型，可选有抽取和分类两种类型的任务。
+- ``options``: 指定分类任务的类别标签，该参数只对分类类型任务有效。
+- ``prompt_prefix``: 声明分类任务的prompt前缀信息，该参数只对分类类型任务有效。
+- ``is_shuffle``: 是否对数据集进行随机打散，默认为True。
+- ``seed``: 随机种子，默认为1000.
 
 备注：
-
 - 默认情况下 [doccano.py](./doccano.py) 脚本会按照比例将数据划分为 train/dev/test 数据集
 - 每次执行 [doccano.py](./doccano.py) 脚本，将会覆盖已有的同名数据文件
-- 在模型训练阶段我们推荐构造一些负例以提升模型效果，在数据转换阶段我们内置了这一功能。可通过 `negative_ratio`控制自动构造的负样本比例；负样本数量 = negative_ratio \* 正样本数量。
-- 对于从 doccano 导出的文件，默认文件中的每条数据都是经过人工正确标注的。
+- 在模型训练阶段我们推荐构造一些负例以提升模型效果，在数据转换阶段我们内置了这一功能。可通过`negative_ratio`控制自动构造的负样本比例；负样本数量 = negative_ratio * 正样本数量。
+- 对于从doccano导出的文件，默认文件中的每条数据都是经过人工正确标注的。
 
-更多**不同类型任务（关系抽取、事件抽取、评价观点抽取等）的标注规则及参数说明**，请参考[doccano 数据标注指南](doccano.md)。
+更多**不同类型任务（关系抽取、事件抽取、评价观点抽取等）的标注规则及参数说明**，请参考[doccano数据标注指南](doccano.md)。
 
 #### 模型微调
 
@@ -438,16 +472,16 @@ python finetune.py \
 
 - `train_path`: 训练集文件路径。
 - `dev_path`: 验证集文件路径。
-- `save_dir`: 模型存储路径，默认为 `./checkpoint`。
-- `learning_rate`: 学习率，默认为 1e-5。
-- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为 16。
-- `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为 512。
-- `num_epochs`: 训练轮数，默认为 100。
-- `model`: 选择模型，程序会基于选择的模型进行模型微调，可选有 `uie-base`和 `uie-tiny`，默认为 `uie-base`。
-- `seed`: 随机种子，默认为 1000.
-- `logging_steps`: 日志打印的间隔 steps 数，默认 10。
-- `valid_steps`: evaluate 的间隔 steps 数，默认 100。
-- `device`: 选用什么设备进行训练，可选 cpu 或 gpu。
+- `save_dir`: 模型存储路径，默认为`./checkpoint`。
+- `learning_rate`: 学习率，默认为1e-5。
+- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为16。
+- `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
+- `num_epochs`: 训练轮数，默认为100。
+- `model`: 选择模型，程序会基于选择的模型进行模型微调，默认为`uie_base_pytorch`。
+- `seed`: 随机种子，默认为1000.
+- `logging_steps`: 日志打印的间隔steps数，默认10。
+- `valid_steps`: evaluate的间隔steps数，默认100。
+- `device`: 选用什么设备进行训练，可选cpu或gpu。
 
 #### 模型评估
 
@@ -465,15 +499,15 @@ python evaluate.py \
 
 可配置参数说明：
 
-- `model_path`: 进行评估的模型文件夹路径，路径下需包含模型权重文件 `model_state.pdparams`及配置文件 `model_config.json`。
+- `model_path`: 进行评估的模型文件夹路径，路径下需包含模型权重文件`pytorch_model.bin`及配置文件`config.json`。
 - `test_path`: 进行评估的测试集文件。
-- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为 16。
-- `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为 512。
-- `model`: 选择所使用的模型，可选有 `uie-base`和 `uie-tiny`，默认为 `uie-base`。
+- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为16。
+- `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
+- `model`: 选择所使用的模型，可选有`uie-base`和`uie-tiny`，默认为`uie-base`。
 
 #### 定制模型一键预测
 
-`paddlenlp.Taskflow`装载定制模型，通过 `task_path`指定模型权重文件的路径，路径下需要包含训练好的模型权重文件 `model_state.pdparams`。
+`UIEPredictor`装载定制模型，通过`task_path`指定模型权重文件的路径，路径下需要包含训练好的模型权重文件`pytorch_model.bin`。
 
 ```python
 >>> from pprint import pprint
@@ -501,7 +535,7 @@ python evaluate.py \
           'text': '114'}]}]
 ```
 
-#### Few-Shot 实验
+#### Few-Shot实验
 
 我们在互联网、医疗、金融三大垂类自建测试集上进行了实验：
 
@@ -512,31 +546,34 @@ python evaluate.py \
 <tr><td>uie-base<td>46.43<td>70.92<td>71.83<td>85.72<td>78.33<td>81.86
 </table>
 
-0-shot 表示无训练数据直接通过 `paddlenlp.Taskflow`进行预测，5-shot 表示基于 5 条标注数据进行模型微调。实验表明 UIE 在垂类场景可以通过少量数据（few-shot）进一步提升效果。
+0-shot表示无训练数据直接通过```UIEPredictor```进行预测，5-shot表示基于5条标注数据进行模型微调。实验表明UIE在垂类场景可以通过少量数据（few-shot）进一步提升效果。
 
-#### Python 部署
+#### Python部署
 
-以下是 UIE Python 端的部署流程，包括环境准备、模型导出和使用示例。
+以下是UIE Python端的部署流程，包括环境准备、模型导出和使用示例。
 
 - 环境准备
-  UIE 的部署分为 CPU 和 GPU 两种情况，请根据你的部署环境安装对应的依赖。
+  UIE的部署分为CPU和GPU两种情况，请根据你的部署环境安装对应的依赖。
 
-  - CPU 端
+  - CPU端
 
-    CPU 端的部署请使用如下命令安装所需依赖
+    CPU端的部署请使用如下命令安装所需依赖
 
     ```shell
     pip install onnx onnxruntime
     ```
-  - GPU 端
+  - GPU端
 
-    为了在 GPU 上获得最佳的推理性能和稳定性，请先确保机器已正确安装 NVIDIA 相关驱动和基础软件，确保**CUDA >= 11.2，cuDNN >= 8.1.1**，并使用以下命令安装所需依赖
+    为了在GPU上获得最佳的推理性能和稳定性，请先确保机器已正确安装NVIDIA相关驱动和基础软件，确保**CUDA >= 11.2，cuDNN >= 8.1.1**，并使用以下命令安装所需依赖
 
     ```shell
     pip install onnx onnxconverter_common onnxruntime-gpu
     ```
-    如需使用半精度（FP16）部署，请确保 GPU 设备的 CUDA 计算能力 (CUDA Compute Capability) 大于 7.0，典型的设备包括 V100、T4、A10、A100、GTX 20 系列和 30 系列显卡等。
-    更多关于 CUDA Compute Capability 和精度支持情况请参考 NVIDIA 文档：[GPU 硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)
+
+    如需使用半精度（FP16）部署，请确保GPU设备的CUDA计算能力 (CUDA Compute Capability) 大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。
+    更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)
+
+
 - 模型导出
 
   将训练后的动态图参数导出为静态图参数：
@@ -544,36 +581,41 @@ python evaluate.py \
   ```shell
   python export_model.py --model_path=./checkpoint/model_best --output_path=./export
   ```
+
   可配置参数说明：
 
-  - `model_path`: 动态图训练保存的参数路径，路径下包含模型参数文件 `pytorch_model.bin`和模型配置文件 `config.json`。
+  - `model_path`: 动态图训练保存的参数路径，路径下包含模型参数文件`pytorch_model.bin`和模型配置文件`config.json`。
   - `output_path`: 静态图参数导出路径，默认导出路径为`model_path`，即保存到输入模型同目录下。
+
 - 推理
 
-  - CPU 端推理样例
+  - CPU端推理样例
 
-    在 CPU 端，请使用如下命令进行部署
+    在CPU端，请使用如下命令进行部署
 
     ```shell
     python uie_predictor.py --model_path_prefix ./export --engine onnx --device cpu
     ```
+
     可配置参数说明：
 
-    - `model_path_prefix`: 用于推理的 Paddle 模型文件路径，需加上文件前缀名称。例如模型文件路径为 `./export/inference.onnx`，则传入 `./export`。
-    - `position_prob`：模型对于 span 的起始位置/终止位置的结果概率 0~1 之间，返回结果去掉小于这个阈值的结果，默认为 0.5，span 的最终概率输出为起始位置概率和终止位置概率的乘积。
-    - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为 512。
+    - `model_path_prefix`: 用于推理的ONNX模型文件路径，需加上文件前缀名称。例如模型文件路径为`./export/inference.onnx`，则传入`./export`。
+    - `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
+    - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
     - `engine`: 可选值为`pytorch`和`onnx`。推理使用的推理引擎。
-  - GPU 端推理样例
 
-    在 GPU 端，请使用如下命令进行部署
+  - GPU端推理样例
+
+    在GPU端，请使用如下命令进行部署
 
     ```shell
     python uie_predictor.py --model_path_prefix ./export --engine onnx --device gpu --use_fp16
     ```
+
     可配置参数说明：
 
-    - `model_path_prefix`: 用于推理的 Paddle 模型文件路径，需加上文件前缀名称。例如模型文件路径为 `./export/inference.pdiparams`，则传入 `./export/inference`。
-    - `use_fp16`: 是否使用 FP16 进行加速，默认关闭。
-    - `position_prob`：模型对于 span 的起始位置/终止位置的结果概率 0~1 之间，返回结果去掉小于这个阈值的结果，默认为 0.5，span 的最终概率输出为起始位置概率和终止位置概率的乘积。
-    - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为 512。
+    - `model_path_prefix`: 用于推理的ONNX模型文件路径，需加上文件前缀名称。例如模型文件路径为`./export/inference.onnx`，则传入`./export/inference`。
+    - `use_fp16`: 是否使用FP16进行加速，默认关闭。
+    - `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
+    - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
     - `engine`: 可选值为`pytorch`和`onnx`。推理使用的推理引擎。
