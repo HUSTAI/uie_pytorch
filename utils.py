@@ -553,7 +553,7 @@ def dbc2sbc(s):
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
 
-    def __init__(self, patience=7, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
+    def __init__(self, patience=7, verbose=False, delta=0, save_dir='checkpoint/early_stopping', trace_func=print):
         """
         Args:
             patience (int): How long to wait after last time validation loss improved.
@@ -563,7 +563,7 @@ class EarlyStopping:
             delta (float): Minimum change in the monitored quantity to qualify as an improvement.
                             Default: 0
             path (str): Path for the checkpoint to be saved to.
-                            Default: 'checkpoint.pt'
+                            Default: 'checkpoint/early_stopping'
             trace_func (function): trace print function.
                             Default: print            
         """
@@ -574,7 +574,7 @@ class EarlyStopping:
         self.early_stop = False
         self.val_loss_min = np.Inf
         self.delta = delta
-        self.path = path
+        self.save_dir = save_dir
         self.trace_func = trace_func
 
     def __call__(self, val_loss, model):
@@ -600,7 +600,7 @@ class EarlyStopping:
         if self.verbose:
             self.trace_func(
                 f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
-        torch.save(model.state_dict(), self.path)
+        model.save_pretrained(self.save_dir)
         self.val_loss_min = val_loss
 
 
@@ -964,7 +964,7 @@ def get_path_from_url(url,
         total_size = req.headers.get('content-length')
         with open(tmp_fullname, 'wb') as f:
             if total_size:
-                with tqdm(total=(int(total_size) + 1023) // 1024,unit='KB') as pbar:
+                with tqdm(total=(int(total_size) + 1023) // 1024, unit='KB') as pbar:
                     for chunk in req.iter_content(chunk_size=1024):
                         f.write(chunk)
                         pbar.update(1)

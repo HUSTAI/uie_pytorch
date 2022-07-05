@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import argparse
+import shutil
+import sys
 import time
 import os
 import torch
@@ -55,8 +57,6 @@ def do_train():
             args.save_dir, "early_stopping")
         if not os.path.exists(early_stopping_save_dir):
             os.makedirs(early_stopping_save_dir)
-        early_stopping_save_path = os.path.join(
-            early_stopping_save_dir, 'checkpoint.pt')
         if show_bar:
             def trace_func(*args, **kwargs):
                 with logging_redirect_tqdm([logger.logger]):
@@ -65,7 +65,7 @@ def do_train():
             trace_func = logger.info
         early_stopping = EarlyStopping(
             patience=7, verbose=True, trace_func=trace_func,
-            path=early_stopping_save_path)
+            save_dir=early_stopping_save_dir)
 
     loss_list = []
     loss_sum = 0
@@ -99,7 +99,7 @@ def do_train():
                             token_type_ids=token_type_ids,
                             attention_mask=att_mask)
             start_prob, end_prob = outputs[0], outputs[1]
-            
+
             start_ids = start_ids.type(torch.float32)
             end_ids = end_ids.type(torch.float32)
             loss_start = criterion(start_prob, start_ids)
@@ -107,7 +107,6 @@ def do_train():
             loss = (loss_start + loss_end) / 2.0
             loss.backward()
             optimizer.step()
-            # optimizer.clear_grad()
             optimizer.zero_grad()
             loss_list.append(float(loss))
             loss_sum += float(loss)
@@ -138,6 +137,12 @@ def do_train():
                 model_to_save = model
                 model_to_save.save_pretrained(save_dir)
                 tokenizer.save_pretrained(save_dir)
+                if args.max_model_num:
+                    model_to_delete = global_step-args.max_model_num*args.valid_steps
+                    model_to_delete_path = os.path.join(
+                        args.save_dir, "model_%d" % model_to_delete)
+                    if model_to_delete > 0 and os.path.exists(model_to_delete_path):
+                        shutil.rmtree(model_to_delete_path)
 
                 dev_loss_avg, precision, recall, f1 = evaluate(
                     model, metric, data_loader=dev_data_loader, device=args.device, loss_fn=criterion)
@@ -149,11 +154,11 @@ def do_train():
                     })
                     train_data_iterator.set_postfix(train_postfix_info)
                     with logging_redirect_tqdm([logger.logger]):
-                        logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f"
-                                    % (precision, recall, f1))
+                        logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, loss: %.5f"
+                                    % (precision, recall, f1, dev_loss_avg))
                 else:
-                    logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f"
-                                % (precision, recall, f1))
+                    logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, loss: %.5f"
+                                % (precision, recall, f1, dev_loss_avg))
                 # Save model which has best F1
                 if f1 > best_f1:
                     if show_bar:
@@ -181,11 +186,7 @@ def do_train():
                                 logger.info("Early stopping")
                         else:
                             logger.info("Early stopping")
-                        save_dir = early_stopping_save_dir
-                        model_to_save = model
-                        model_to_save.save_pretrained(save_dir)
-                        tokenizer.save_pretrained(save_dir)
-                        break
+                        sys.exit(0)
 
 
 if __name__ == "__main__":
@@ -216,6 +217,8 @@ if __name__ == "__main__":
                         help="Select which device to train model, defaults to gpu.")
     parser.add_argument("--model", default="uie_base_pytorch", type=str,
                         help="Select the pretrained model for few-shot learning.")
+    parser.add_argument("--max_model_num", default=5, type=int,
+                        help="Max number of saved model. Best model and earlystopping model is not included.")
     parser.add_argument("--early_stopping", action='store_true', default=False,
                         help="Use early stopping while training")
 
