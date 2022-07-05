@@ -93,6 +93,7 @@ class PyTorchInferBackend:
             self.model = self.model.cuda()
         else:
             logger.info(">>> [PyTorchInferBackend] Use CPU to inference ...")
+        logger.info(">>> [PyTorchInferBackend] Engine Created ...")
 
     def infer(self, input_dict):
         import torch
@@ -539,7 +540,7 @@ def parse_args():
     parser.add_argument(
         "--model_path_prefix",
         type=str,
-        default='export/inference',
+        default='uie_base_pytorch',
         # required=True,
         help="The path prefix of inference model to be used.", )
     parser.add_argument(
