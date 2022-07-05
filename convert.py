@@ -16,14 +16,19 @@ import argparse
 import collections
 import json
 import os
+import pickle
 import shutil
 import paddle
 import numpy as np
 
-import paddle.fluid.dygraph as D
 import torch
-from paddle import fluid
-from paddle.utils.download import get_path_from_url
+try:
+    import paddle
+    from paddle.utils.download import get_path_from_url
+    paddle_installed = True
+except ImportError:
+    from utils import get_path_from_url
+    paddle_installed = False
 
 from model import UIE
 from utils import logger
@@ -216,9 +221,16 @@ def extract_and_convert(input_dir, output_dir):
     logger.info('=' * 20 + 'extract weights' + '=' * 20)
     state_dict = collections.OrderedDict()
     weight_map = build_params_map(attention_num=config['num_hidden_layers'])
-    with fluid.dygraph.guard():
-        paddle_paddle_params, _ = D.load_dygraph(
-            os.path.join(input_dir, 'model_state'))
+    if paddle_installed:
+        import paddle.fluid.dygraph as D
+        from paddle import fluid
+        with fluid.dygraph.guard():
+            paddle_paddle_params, _ = D.load_dygraph(
+                os.path.join(input_dir, 'model_state'))
+    else:
+        paddle_paddle_params = pickle.load(
+            open(os.path.join(input_dir, 'model_state.pdparams'), 'rb'))
+        del paddle_paddle_params['StructuredToParameterName@@']
     for weight_name, weight_value in paddle_paddle_params.items():
         if 'weight' in weight_name:
             if 'encoder.encoder' in weight_name or 'pooler' in weight_name or 'linear' in weight_name:
