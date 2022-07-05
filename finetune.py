@@ -44,12 +44,9 @@ def do_train():
     dev_data_loader = DataLoader(
         dev_ds, batch_size=args.batch_size, shuffle=True)
 
-    # optimizer = paddle.optimizer.AdamW(
-    #     learning_rate=args.learning_rate, parameters=model.parameters())
     optimizer = torch.optim.AdamW(
         lr=args.learning_rate, params=model.parameters())
 
-    # criterion = paddle.nn.BCELoss()
     criterion = torch.nn.functional.binary_cross_entropy
     metric = SpanEvaluator()
 
@@ -102,8 +99,7 @@ def do_train():
                             token_type_ids=token_type_ids,
                             attention_mask=att_mask)
             start_prob, end_prob = outputs[0], outputs[1]
-            # start_ids = paddle.cast(start_ids, 'float32')
-            # end_ids = paddle.cast(end_ids, 'float32')
+            
             start_ids = start_ids.type(torch.float32)
             end_ids = end_ids.type(torch.float32)
             loss_start = criterion(start_prob, start_ids)

@@ -26,8 +26,8 @@ def evaluate(model, metric, data_loader, device='gpu', loss_fn=None, show_bar=Tr
     Given a dataset, it evals model and computes the metric.
     Args:
         model(obj:`torch.nn.Module`): A model to classify texts.
-        metric(obj:`paddle.metric.Metric`): The evaluation metric.
-        data_loader(obj:`paddle.io.DataLoader`): The dataset loader which generates batches.
+        metric(obj:`Metric`): The evaluation metric.
+        data_loader(obj:`torch.utils.data.DataLoader`): The dataset loader which generates batches.
     """
     return_loss = False
     if loss_fn is not None:
