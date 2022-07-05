@@ -15,8 +15,9 @@
 import argparse
 import os
 from itertools import chain
-from typing import List
+from typing import List, Union
 import shutil
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -27,7 +28,7 @@ from model import UIE
 from utils import logger
 
 
-def validate_onnx(tokenizer: PreTrainedTokenizerBase, pt_model: PreTrainedModel, onnx_path: str, strict: bool = True, atol: float = 1e-05):
+def validate_onnx(tokenizer: PreTrainedTokenizerBase, pt_model: PreTrainedModel, onnx_path: Union[Path, str], strict: bool = True, atol: float = 1e-05):
 
     # 验证模型
     from onnxruntime import InferenceSession, SessionOptions
@@ -60,7 +61,7 @@ def validate_onnx(tokenizer: PreTrainedTokenizerBase, pt_model: PreTrainedModel,
 
     # Create ONNX Runtime session
     options = SessionOptions()
-    session = InferenceSession(onnx_path, options, providers=[
+    session = InferenceSession(str(onnx_path), options, providers=[
                                "CPUExecutionProvider"])
 
     # We flatten potential collection of inputs (i.e. past_keys)
@@ -124,9 +125,9 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
         model.config.use_cache = False
 
         # Create folder
-        if not os.path.exists(args.output_path):
-            os.makedirs(args.output_path)
-        save_path = os.path.join(args.output_path, "inference.onnx")
+        if not args.output_path.exists():
+            args.output_path.mkdir(parents=True)
+        save_path = args.output_path / "inference.onnx"
 
         dynamic_axes = {name: {0: 'batch', 1: 'sequence'}
                         for name in chain(input_names, output_names)}
@@ -138,9 +139,9 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
                        * seq_length] * batch_size
         inputs = dict(tokenizer(dummy_input, return_tensors="pt"))
 
-        if os.path.exists(save_path):
-            logger.warning(f'Override model {save_path}')
-            os.remove(save_path)
+        if save_path.exists():
+            logger.warning(f'Overwrite model {save_path.as_posix()}')
+            save_path.unlink()
 
         torch.onnx.export(model,
                           (inputs,),
@@ -152,8 +153,6 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
                           opset_version=11
                           )
 
-        
-
     if not os.path.exists(save_path):
         logger.error(f'Export Failed!')
 
@@ -162,9 +161,9 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, required=True,
+    parser.add_argument("--model_path", type=Path, required=True,
                         default='./checkpoint/model_best', help="The path to model parameters to be loaded.")
-    parser.add_argument("--output_path", type=str, default=None,
+    parser.add_argument("--output_path", type=Path, default=None,
                         help="The path of model parameter in static graph to be saved.")
     args = parser.parse_args()
 
@@ -183,24 +182,27 @@ def main():
         'start_prob',
         'end_prob'
     ]
-    
+
     logger.info("Export Tokenizer Config...")
-    
+
     export_tokenizer(args)
-    
+
     logger.info("Export ONNX Model...")
 
     save_path = export_onnx(
         args, tokenizer, model, device, input_names, output_names)
     validate_onnx(tokenizer, model, save_path)
 
+    logger.info(f"All good, model saved at: {save_path.as_posix()}")
+
+
 def export_tokenizer(args):
-    for tokenizer_fine in ['tokenizer_config.json','special_tokens_map.json','vocab.txt']:
-        file_from= os.path.join(args.model_path,tokenizer_fine)
-        file_to=os.path.join(args.output_path,tokenizer_fine)
-        if os.path.abspath(file_from)==os.path.abspath(file_to):
+    for tokenizer_fine in ['tokenizer_config.json', 'special_tokens_map.json', 'vocab.txt']:
+        file_from = args.model_path / tokenizer_fine
+        file_to = args.output_path/tokenizer_fine
+        if file_from.resolve() == file_to.resolve():
             continue
-        shutil.copyfile(file_from,file_to)
+        shutil.copyfile(file_from, file_to)
 
 
 if __name__ == "__main__":

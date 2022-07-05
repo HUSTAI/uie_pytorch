@@ -87,7 +87,8 @@ class PyTorchInferBackend:
         if self.device == 'gpu':
             logger.info(">>> [PyTorchInferBackend] Use GPU to inference ...")
             if use_fp16:
-                logger.info(">>> [PyTorchInferBackend] Use FP16 to inference ...")
+                logger.info(
+                    ">>> [PyTorchInferBackend] Use FP16 to inference ...")
                 self.model = self.model.half()
             self.model = self.model.cuda()
         else:
