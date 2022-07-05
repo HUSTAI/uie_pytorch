@@ -181,7 +181,7 @@ def do_train():
                                 logger.info("Early stopping")
                         else:
                             logger.info("Early stopping")
-                        save_dir = early_stopping_save_path
+                        save_dir = early_stopping_save_dir
                         model_to_save = model
                         model_to_save.save_pretrained(save_dir)
                         tokenizer.save_pretrained(save_dir)
