@@ -368,7 +368,7 @@ def do_main():
             paddle_model.eval()
             validate_model(tokenizer, model, paddle_model)
         else:
-            logger.warning("Skipping validating PyTorch model. "
+            logger.warning("Skipping validating PyTorch model because paddle is not installed. "
                            "The outputs of the model may not be the same as Paddle model.")
 
 
