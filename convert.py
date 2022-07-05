@@ -199,7 +199,8 @@ def extract_and_convert(input_dir, output_dir):
         words = f.read().splitlines()
     words_set = set()
     words_duplicate_indices = []
-    for i, word in enumerate(words):
+    for i in range(len(words)-1,-1,-1):
+        word = words[i]
         if word in words_set:
             words_duplicate_indices.append(i)
         words_set.add(word)
