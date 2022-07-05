@@ -112,16 +112,24 @@ def do_train():
             loss_sum += float(loss)
             loss_num += 1
 
+            if show_bar:
+                loss_avg = loss_sum / loss_num
+                train_postfix_info.update({
+                    'loss': f'{loss_avg:.5f}'
+                })
+                train_data_iterator.set_postfix(train_postfix_info)
+
             global_step += 1
             if global_step % args.logging_steps == 0:
                 time_diff = time.time() - tic_train
                 loss_avg = loss_sum / loss_num
 
                 if show_bar:
-                    train_postfix_info.update({
-                        'loss': f'{loss_avg:.5f}'
-                    })
-                    train_data_iterator.set_postfix(train_postfix_info)
+                    with logging_redirect_tqdm([logger.logger]):
+                        logger.info(
+                            "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
+                            % (global_step, epoch, loss_avg,
+                            args.logging_steps / time_diff))
                 else:
                     logger.info(
                         "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
@@ -154,10 +162,10 @@ def do_train():
                     })
                     train_data_iterator.set_postfix(train_postfix_info)
                     with logging_redirect_tqdm([logger.logger]):
-                        logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, loss: %.5f"
+                        logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, dev loss: %.5f"
                                     % (precision, recall, f1, dev_loss_avg))
                 else:
-                    logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, loss: %.5f"
+                    logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, dev loss: %.5f"
                                 % (precision, recall, f1, dev_loss_avg))
                 # Save model which has best F1
                 if f1 > best_f1:

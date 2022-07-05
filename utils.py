@@ -498,7 +498,7 @@ BAR_TYPE = [
     "░▏▎▍▌▋▊▉█"
 ]
 
-tqdm = partial(tqdm, bar_format=BAR_FORMAT, ascii=BAR_TYPE[0])
+tqdm = partial(tqdm, bar_format=BAR_FORMAT, ascii=BAR_TYPE[0], leave=False)
 
 
 def get_id_and_prob(spans, offset_map):
