@@ -195,8 +195,19 @@ def extract_and_convert(input_dir, output_dir):
     json.dump(config, open(os.path.join(output_dir, 'config.json'),
               'wt', encoding='utf-8'), indent=4)
     logger.info('=' * 20 + 'save vocab file' + '=' * 20)
-    shutil.copyfile(os.path.join(input_dir, 'vocab.txt'),
-                    os.path.join(output_dir, 'vocab.txt'))
+    with open(os.path.join(input_dir, 'vocab.txt'), 'rt', encoding='utf-8') as f:
+        words = f.read().splitlines()
+    words_set = set()
+    words_duplicate_indices = []
+    for i, word in enumerate(words):
+        if word in words_set:
+            words_duplicate_indices.append(i)
+        words_set.add(word)
+    for i, idx in enumerate(words_duplicate_indices):
+        words[idx] = chr(120042+i)
+    with open(os.path.join(output_dir, 'vocab.txt'), 'wt', encoding='utf-8') as f:
+        for word in words:
+            f.write(word+'\n')
     special_tokens_map = {
         "unk_token": "[UNK]",
         "sep_token": "[SEP]",
