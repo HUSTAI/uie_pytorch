@@ -338,6 +338,29 @@ def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
                 f"\t\t-[✓] all values close (atol: {atol})")
 
 
+def do_main():
+    check_model(args.input_model)
+    extract_and_convert(args.input_model, args.output_model)
+    if not args.no_validate_output:
+        if paddle_installed:
+            try:
+                from paddlenlp.transformers import ErnieTokenizer
+                from paddlenlp.taskflow.models import UIE as UIEPaddle
+            except (ImportError, ModuleNotFoundError) as e:
+                raise ModuleNotFoundError(
+                    'Module PaddleNLP is not installed. Try install paddlenlp or run convert.py with --no_validate_output') from e
+            tokenizer: ErnieTokenizer = ErnieTokenizer.from_pretrained(
+                args.input_model)
+            model = UIE.from_pretrained(args.output_model)
+            model.eval()
+            paddle_model = UIEPaddle.from_pretrained(args.input_model)
+            paddle_model.eval()
+            validate_model(tokenizer, model, paddle_model)
+        else:
+            logger.warning("Skipping validating PyTorch model. "
+                           "The outputs of the model may not be the same as Paddle model.")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_model", default="uie-base", type=str,
@@ -347,19 +370,5 @@ if __name__ == '__main__':
     parser.add_argument("--no_validate_output", action="store_true",
                         help="Directory of output pytorch model")
     args = parser.parse_args()
-    check_model(args.input_model)
-    extract_and_convert(args.input_model, args.output_model)
-    if not args.no_validate_output:
-        try:
-            from paddlenlp.transformers import ErnieTokenizer
-            from paddlenlp.taskflow.models import UIE as UIEPaddle
-        except (ImportError, ModuleNotFoundError):
-            raise ModuleNotFoundError(
-                'Module PaddleNLP is not installed. Try install paddlenlp or run convert.py with --no_validate_output')
-        tokenizer: ErnieTokenizer = ErnieTokenizer.from_pretrained(
-            args.input_model)
-        model = UIE.from_pretrained(args.output_model)
-        model.eval()
-        paddle_model = UIEPaddle.from_pretrained(args.input_model)
-        paddle_model.eval()
-        validate_model(tokenizer, model, paddle_model)
+
+    do_main()
