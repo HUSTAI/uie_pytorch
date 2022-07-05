@@ -74,10 +74,12 @@ class UIE(BertPreTrainedModel):
         self.sigmoid = nn.Sigmoid()
         
         if 'use_task_id' in dir(config) and config.use_task_id:
-            self.task_type_embeddings=nn.Embedding(config.task_type_vocab_size,config.hidden_size)
+            # Add task type embedding to BERT
+            task_type_embeddings=nn.Embedding(config.task_type_vocab_size,config.hidden_size)
+            self.encoder.embeddings.task_type_embeddings=task_type_embeddings
             def hook(module,input,output):
                 input=input[0]
-                return output+self.task_type_embeddings(torch.zeros(input.size(),dtype=torch.int64,device=input.device))
+                return output+task_type_embeddings(torch.zeros(input.size(),dtype=torch.int64,device=input.device))
             self.encoder.embeddings.word_embeddings.register_forward_hook(hook)
         
         self.post_init()

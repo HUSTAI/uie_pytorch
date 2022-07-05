@@ -139,7 +139,7 @@ def build_params_map(attention_num=12):
         'encoder.embeddings.word_embeddings.weight': "encoder.embeddings.word_embeddings.weight",
         'encoder.embeddings.position_embeddings.weight': "encoder.embeddings.position_embeddings.weight",
         'encoder.embeddings.token_type_embeddings.weight': "encoder.embeddings.token_type_embeddings.weight",
-        'encoder.embeddings.task_type_embeddings.weight':"task_type_embeddings.weight",
+        'encoder.embeddings.task_type_embeddings.weight':"encoder.embeddings.task_type_embeddings.weight",
         'encoder.embeddings.layer_norm.weight': 'encoder.embeddings.LayerNorm.gamma',
         'encoder.embeddings.layer_norm.bias': 'encoder.embeddings.LayerNorm.beta',
     })
