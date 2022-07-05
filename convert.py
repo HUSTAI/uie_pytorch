@@ -204,7 +204,7 @@ def extract_and_convert(input_dir, output_dir):
             words_duplicate_indices.append(i)
         words_set.add(word)
     for i, idx in enumerate(words_duplicate_indices):
-        words[idx] = chr(120042+i)
+        words[idx] = chr(0x1F6A9+i) # Change duplicated word to 🚩 LOL
     with open(os.path.join(output_dir, 'vocab.txt'), 'wt', encoding='utf-8') as f:
         for word in words:
             f.write(word+'\n')
