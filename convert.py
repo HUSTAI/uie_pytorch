@@ -26,7 +26,7 @@ try:
     import paddle
     from paddle.utils.download import get_path_from_url
     paddle_installed = True
-except ImportError:
+except (ImportError,ModuleNotFoundError):
     from utils import get_path_from_url
     paddle_installed = False
 
