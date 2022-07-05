@@ -18,7 +18,6 @@ import json
 import os
 import pickle
 import shutil
-import paddle
 import numpy as np
 
 import torch
@@ -26,7 +25,7 @@ try:
     import paddle
     from paddle.utils.download import get_path_from_url
     paddle_installed = True
-except (ImportError,ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError):
     from utils import get_path_from_url
     paddle_installed = False
 
@@ -351,12 +350,16 @@ if __name__ == '__main__':
     check_model(args.input_model)
     extract_and_convert(args.input_model, args.output_model)
     if not args.no_validate_output:
-        from paddlenlp.transformers import ErnieTokenizer
+        try:
+            from paddlenlp.transformers import ErnieTokenizer
+            from paddlenlp.taskflow.models import UIE as UIEPaddle
+        except (ImportError, ModuleNotFoundError):
+            raise ModuleNotFoundError(
+                'Module PaddleNLP is not installed. Try install paddlenlp or run convert.py with --no_validate_output')
         tokenizer: ErnieTokenizer = ErnieTokenizer.from_pretrained(
             args.input_model)
         model = UIE.from_pretrained(args.output_model)
         model.eval()
-        from paddlenlp.taskflow.models import UIE as UIEPaddle
         paddle_model = UIEPaddle.from_pretrained(args.input_model)
         paddle_model.eval()
         validate_model(tokenizer, model, paddle_model)
