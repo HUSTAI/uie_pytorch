@@ -494,6 +494,8 @@ python finetune.py \
 - `logging_steps`: 日志打印的间隔steps数，默认10。
 - `valid_steps`: evaluate的间隔steps数，默认100。
 - `device`: 选用进行训练的设备，可选`cpu`或`gpu`。
+- `max_model_num`: 保存的模型的个数，不包含`model_best`和`early_stopping`保存的模型，默认为5。
+- `early_stopping`: 是否采用提前停止（Early Stopping），默认不使用。
 
 <a name="模型评估"></a>
 #### 模型评估
@@ -555,8 +557,11 @@ python evaluate.py \
 <table>
 <tr><th row_span='2'><th colspan='2'>金融<th colspan='2'>医疗<th colspan='2'>互联网
 <tr><td><th>0-shot<th>5-shot<th>0-shot<th>5-shot<th>0-shot<th>5-shot
-<tr><td>uie-tiny<td>41.11<td>64.53<td>65.40<td>75.72<td>78.32<td>79.68
-<tr><td>uie-base<td>46.43<td>70.92<td>71.83<td>85.72<td>78.33<td>81.86
+<tr><td>uie-base (12L768H)<td><b>46.43</b><td><b>70.92</b><td><b>71.83</b><td><b>85.72</b><td><b>78.33</b><td><b>81.86</b>
+<tr><td>uie-medium (6L768H)<td>41.11<td>64.53<td>65.40<td>75.72<td>78.32<td>79.68
+<tr><td>uie-mini (6L384H)<td>37.04<td>64.65<td>60.50<td>78.36<td>72.09<td>76.38
+<tr><td>uie-micro (4L384H)<td>37.53<td>62.11<td>57.04<td>75.92<td>66.00<td>70.22
+<tr><td>uie-nano (4L312H)<td>38.94<td>66.83<td>48.29<td>76.74<td>62.86<td>72.35
 </table>
 
 0-shot表示无训练数据直接通过```UIEPredictor```进行预测，5-shot表示基于5条标注数据进行模型微调。实验表明UIE在垂类场景可以通过少量数据（few-shot）进一步提升效果。
