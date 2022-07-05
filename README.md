@@ -379,7 +379,7 @@ python convert.py --no_validate_output
 * `task_path`：任务使用的模型。
 * `schema`：定义任务抽取目标，可参考示例中对于不同信息抽取任务的schema配置自定义抽取目标。
 * `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
-* `use_fp16`：选择模型精度，默认为`fp32`，可选有`fp16`和`fp32`。`fp16`推理速度更快。如果选择`fp16`，请先确保机器正确安装NVIDIA相关驱动和基础软件，**确保CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保GPU设备的CUDA计算能力（CUDA Compute Capability）大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
+* `use_fp16`：是否使用`fp16`进行加速，默认关闭。`fp16`推理速度更快。如果选择`fp16`，请先确保机器正确安装NVIDIA相关驱动和基础软件，**确保CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保GPU设备的CUDA计算能力（CUDA Compute Capability）大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
 
 <a name="轻定制功能"></a>
 
@@ -473,7 +473,7 @@ python finetune.py \
     --batch_size 16 \
     --max_seq_len 512 \
     --num_epochs 100 \
-    --model "uie-base" \
+    --model "uie_base_pytorch" \
     --seed 1000 \
     --logging_steps 10 \
     --valid_steps 100 \
@@ -493,7 +493,7 @@ python finetune.py \
 - `seed`: 随机种子，默认为1000.
 - `logging_steps`: 日志打印的间隔steps数，默认10。
 - `valid_steps`: evaluate的间隔steps数，默认100。
-- `device`: 选用什么设备进行训练，可选cpu或gpu。
+- `device`: 选用进行训练的设备，可选`cpu`或`gpu`。
 
 <a name="模型评估"></a>
 #### 模型评估
@@ -516,7 +516,7 @@ python evaluate.py \
 - `test_path`: 进行评估的测试集文件。
 - `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为16。
 - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
-- `model`: 选择所使用的模型，可选有`uie-base`和`uie-tiny`，默认为`uie-base`。
+- `device`: 选用进行训练的设备，可选`cpu`或`gpu`。
 
 #### 定制模型一键预测
 
