@@ -73,7 +73,7 @@ class UIE(BertPreTrainedModel):
         self.linear_end = nn.Linear(hidden_size, 1)
         self.sigmoid = nn.Sigmoid()
 
-        if 'use_task_id' in dir(config) and config.use_task_id:
+        if hasattr(config, 'use_task_id') and config.use_task_id:
             # Add task type embedding to BERT
             task_type_embeddings = nn.Embedding(
                 config.task_type_vocab_size, config.hidden_size)
