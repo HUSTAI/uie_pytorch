@@ -69,6 +69,9 @@ def do_convert():
     def _save_examples(save_dir, file_name, examples):
         count = 0
         save_path = os.path.join(save_dir, file_name)
+        if not examples:
+            logger.info("Skip saving %d examples to %s." % (0, save_path))
+            return
         with open(save_path, "w", encoding="utf-8") as f:
             for example in examples:
                 f.write(json.dumps(example, ensure_ascii=False) + "\n")
