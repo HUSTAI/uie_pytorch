@@ -194,6 +194,7 @@ def do_train():
                                 logger.info("Early stopping")
                         else:
                             logger.info("Early stopping")
+                        tokenizer.save_pretrained(early_stopping_save_dir)
                         sys.exit(0)
 
 
