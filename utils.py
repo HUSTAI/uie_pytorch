@@ -522,17 +522,21 @@ def get_id_and_prob(spans, offset_map):
     return sentence_id, prob
 
 
-def cut_chinese_sent(para):
+def cut_chinese_sent(para, rstrip=True, split_on_comma=False):
     """
     Cut the Chinese sentences more precisely, reference to 
     "https://blog.csdn.net/blmoistawinde/article/details/82379256".
     """
-    para = re.sub(r'([。！？\?])([^”’])', r'\1\n\2', para)
-    para = re.sub(r'(\.{6})([^”’])', r'\1\n\2', para)
-    para = re.sub(r'(\…{2})([^”’])', r'\1\n\2', para)
-    para = re.sub(r'([。！？\?][”’])([^，。！？\?])', r'\1\n\2', para)
-    para = para.rstrip()
-    return para.split("\n")
+    flag = chr(0x1F6A9)
+    if split_on_comma:
+        para = re.sub(r'([，])([^”’])', rf'\1{flag}\2', para)
+    para = re.sub(r'([。！？\?])([^”’])', rf'\1{flag}\2', para)
+    para = re.sub(r'(\.{6})([^”’])', r'\1{flag\2', para)
+    para = re.sub(r'(\…{2})([^”’])', r'\1{flag\2', para)
+    para = re.sub(r'([。！？\?][”’])([^，。！？\?])', r'\1{flag\2', para)
+    if rstrip:
+        para = para.rstrip()
+    return para.split(f"{flag}")
 
 
 def dbc2sbc(s):
@@ -1110,3 +1114,165 @@ def get_path_from_url(url,
         fullpath = _decompress(fullpath)
 
     return fullpath
+
+
+def examples_cut_sentence(examples, split_on_comma=False):
+    """
+    Split doccano examples content to sentences
+    """
+
+    def _sentence_start_index(sentences, idx):
+        new_idx = idx
+        sent_idx = 0
+        for sent in sentences:
+            sent_len = len(sent)
+            if new_idx < sent_len:
+                return sent_idx, new_idx
+            else:
+                new_idx -= sent_len
+                sent_idx += 1
+        # return sent_idx, new_idx
+        raise
+
+    def _sentence_end_index(sentences, idx):
+        new_idx = idx
+        sent_idx = 0
+        for sent in sentences:
+            sent_len = len(sent)
+            if new_idx <= sent_len:
+                return sent_idx, new_idx
+            else:
+                new_idx -= sent_len
+                sent_idx += 1
+        # return sent_idx, new_idx
+        raise
+
+    examples_split = []
+    for line in examples:
+        items = json.loads(line)
+        if "data" in items.keys():
+            relation_mode = False
+            if isinstance(items["label"],
+                          dict) and "entities" in items["label"].keys():
+                relation_mode = True
+            text = items["data"]
+            text_split = cut_chinese_sent(
+                text, rstrip=False, split_on_comma=split_on_comma)
+            assert len("".join(text_split)) == len(text)
+            entities_split = [[]]*len(text_split)
+            if not relation_mode:
+                # Export file in JSONL format which doccano < 1.7.0
+                for item in items["label"]:
+                    origin_start_offset = item[0]
+                    origin_end_offset = item[1]
+                    label = item[2]
+                    start_sent_id, start_offset = _sentence_start_index(
+                        text_split, origin_start_offset)
+                    end_sent_id, end_offset = _sentence_end_index(
+                        text_split, origin_end_offset)
+                    if start_sent_id == end_sent_id:
+                        assert text[origin_start_offset:origin_end_offset] == text_split[start_sent_id][start_offset:end_offset]
+                        entities_split[start_sent_id].append(
+                            [start_offset, end_offset, label])
+                    else:
+                        for text_id in range(start_sent_id, end_sent_id+1):
+                            if text_id == start_sent_id:
+                                entities_split[text_id].append(
+                                    [start_offset, len(text_split[text_id]), label])
+                            elif text_id == end_sent_id:
+                                entities_split[text_id].append(
+                                    [0, end_offset, label])
+                            else:
+                                entities_split[text_id].append(
+                                    [0, len(text_split[text_id]), label])
+                            current_text = text_split[text_id]
+                            current_entity = entities_split[text_id][-1]
+                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            logger.warning(
+                                f"Label 「{text[origin_start_offset:origin_end_offset]}」 split to 「{current_label}」 in 「{current_text}」")
+            else:
+                # Export file in JSONL format for relation labeling task which doccano < 1.7.0
+                for item in items["label"]["entities"]:
+                    origin_start_offset = item["start_offset"]
+                    origin_end_offset = item["end_offset"]
+                    label = item["label"]
+                    start_sent_id, start_offset = _sentence_start_index(
+                        text_split, origin_start_offset)
+                    end_sent_id, end_offset = _sentence_end_index(
+                        text_split, origin_end_offset)
+                    if start_sent_id == end_sent_id:
+                        assert text[origin_start_offset:origin_end_offset] == text_split[start_sent_id][start_offset:end_offset]
+                        entities_split[start_sent_id].append(
+                            [start_offset, end_offset, label])
+                    else:
+                        for text_id in range(start_sent_id, end_sent_id+1):
+                            if text_id == start_sent_id:
+                                entities_split[text_id].append(
+                                    [start_offset, len(text_split[text_id]), label])
+                            elif text_id == end_sent_id:
+                                entities_split[text_id].append(
+                                    [0, end_offset, label])
+                            else:
+                                entities_split[text_id].append(
+                                    [0, len(text_split[text_id]), label])
+                            current_text = text_split[text_id]
+                            current_entity = entities_split[text_id][-1]
+                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            logger.warning(
+                                f"Label 「{text[origin_start_offset:origin_end_offset]}」 split to 「{current_label}」 in 「{current_text}」")
+                for short_text, entity in zip(text_split, entities_split):
+                    if short_text_rstip:=short_text.rstrip():
+                        for e in entity:
+                            if e[1]>len(short_text_rstip):
+                                e[1]=len(short_text_rstip)
+                        examples_split.append(json.dumps(
+                            {"text": short_text_rstip, "label": entity}))
+        else:
+            # Export file in JSONL format which doccano >= 1.7.0
+            if "label" in items.keys():
+                text = items["text"]
+                text_split = cut_chinese_sent(
+                    text, rstrip=False, split_on_comma=split_on_comma)
+                assert len("".join(text_split)) == len(text)
+                entities_split = [[] for _ in range(len(text_split))]
+                for item in items["label"]:
+                    origin_start_offset = item[0]
+                    origin_end_offset = item[1]
+                    label = item[2]
+                    entity_name =  text[origin_start_offset:origin_end_offset]
+                    start_sent_id, start_offset = _sentence_start_index(
+                        text_split, origin_start_offset)
+                    end_sent_id, end_offset = _sentence_end_index(
+                        text_split, origin_end_offset)
+                    if start_sent_id == end_sent_id:
+                        assert entity_name == text_split[start_sent_id][start_offset:end_offset]
+                        entities_split[start_sent_id].append(
+                            [start_offset, end_offset, label])
+                    else:
+                        for text_id in range(start_sent_id, end_sent_id+1):
+                            if text_id == start_sent_id:
+                                entities_split[text_id].append(
+                                    [start_offset, len(text_split[text_id]), label])
+                            elif text_id == end_sent_id:
+                                entities_split[text_id].append(
+                                    [0, end_offset, label])
+                            else:
+                                entities_split[text_id].append(
+                                    [0, len(text_split[text_id]), label])
+                            current_text = text_split[text_id]
+                            current_entity = entities_split[text_id][-1]
+                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            logger.warning(
+                                f"Label 「{entity_name}」 split to 「{current_label}」 in 「{current_text}」")
+                for short_text, entity in zip(text_split, entities_split):
+                    if short_text_rstip:=short_text.rstrip():
+                        for e in entity:
+                            if e[1]>len(short_text_rstip):
+                                e[1]=len(short_text_rstip)
+                        examples_split.append(json.dumps(
+                            {"text": short_text_rstip, "label": entity}))
+            else:
+                # Export file in JSONL (relation) format
+                examples_split.append(line)
+    
+    return examples_split

@@ -19,7 +19,7 @@ import json
 from decimal import Decimal
 import numpy as np
 
-from utils import set_seed, convert_ext_examples, convert_cls_examples, logger
+from utils import examples_cut_sentence, set_seed, convert_ext_examples, convert_cls_examples, logger
 
 
 def do_convert():
@@ -46,6 +46,19 @@ def do_convert():
 
     with open(args.doccano_file, "r", encoding="utf-8") as f:
         raw_examples = f.readlines()
+
+    assert args.cut_sentence_type in [
+        0, 1, 2], "Parameter cut_sentence_type must be 0/1/2."
+    if args.cut_sentence_type == 1:
+        raw_examples = examples_cut_sentence(
+            raw_examples, split_on_comma=False)
+    elif args.cut_sentence_type == 2:
+        raw_examples_cut = examples_cut_sentence(
+            raw_examples, split_on_comma=False)
+        raw_examples_cut_comma = examples_cut_sentence(
+            raw_examples, split_on_comma=True)
+        raw_examples.extend(raw_examples_cut)
+        raw_examples.extend(raw_examples_cut_comma)
 
     def _create_ext_examples(examples,
                              negative_ratio=0,
@@ -139,6 +152,9 @@ if __name__ == "__main__":
                         help="Whether to shuffle the labeled dataset, defaults to True.")
     parser.add_argument("--seed", type=int, default=1000,
                         help="random seed for initialization")
+    parser.add_argument("--cut_sentence_type", default=0, type=int, choices=[0, 1, 2],
+                        help="Split paragraphs to sentence type [0/1/2]. "
+                        "[0]: Don't cut [1]:Split sentence [2]:Split sentence with origin data retained.")
 
     args = parser.parse_args()
     # yapf: enable
