@@ -13,18 +13,19 @@
 # limitations under the License.
 
 import argparse
+import os
 import shutil
 import sys
 import time
-import os
+
 import torch
 from torch.utils.data import DataLoader
 from transformers import BertTokenizerFast
 
-from utils import IEDataset, logger, tqdm
-from model import UIE
 from evaluate import evaluate
-from utils import set_seed, SpanEvaluator, EarlyStopping, logging_redirect_tqdm
+from model import UIE
+from utils import (EarlyStopping, IEDataset, SpanEvaluator, logger,
+                   logging_redirect_tqdm, set_seed, tqdm)
 
 
 def do_train():
@@ -129,7 +130,7 @@ def do_train():
                         logger.info(
                             "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
                             % (global_step, epoch, loss_avg,
-                            args.logging_steps / time_diff))
+                               args.logging_steps / time_diff))
                 else:
                     logger.info(
                         "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"

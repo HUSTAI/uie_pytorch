@@ -380,9 +380,11 @@ class UIEPredictor(object):
                 return_offsets_mapping=True,
                 return_tensors="np")
 
-            input_ids.append(encoded_inputs["input_ids"][0])
-            token_type_ids.append(encoded_inputs["token_type_ids"][0])
-            attention_mask.append(encoded_inputs["attention_mask"][0])
+            def _pad(x):
+                return np.pad(x, (0, self._max_seq_len-x.shape[-1]), 'constant')
+            input_ids.append(_pad(encoded_inputs["input_ids"][0]))
+            token_type_ids.append(_pad(encoded_inputs["token_type_ids"][0]))
+            attention_mask.append(_pad(encoded_inputs["attention_mask"][0]))
             offset_maps.append(encoded_inputs["offset_mapping"][0])
 
         input_dict = {
@@ -393,7 +395,6 @@ class UIEPredictor(object):
             "attention_mask": np.array(
                 attention_mask, dtype="int64")
         }
-        offset_maps = np.array(offset_maps, dtype="int64")
 
         outputs = self.inference_backend.infer(input_dict)
         start_prob, end_prob = outputs[0], outputs[1]
@@ -409,13 +410,13 @@ class UIEPredictor(object):
         for start_ids, end_ids, ids, offset_map in zip(start_ids_list,
                                                        end_ids_list,
                                                        input_ids.tolist(),
-                                                       offset_maps.tolist()):
+                                                       offset_maps):
             for i in reversed(range(len(ids))):
                 if ids[i] != 0:
                     ids = ids[:i]
                     break
             span_list = get_span(start_ids, end_ids, with_prob=True)
-            sentence_id, prob = get_id_and_prob(span_list, offset_map)
+            sentence_id, prob = get_id_and_prob(span_list, offset_map.tolist())
             sentence_ids.append(sentence_id)
             probs.append(prob)
 
