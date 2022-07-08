@@ -15,7 +15,7 @@
 from model import UIE
 import argparse
 import torch
-from utils import SpanEvaluator, IEDataset, logger, tqdm
+from utils import SpanEvaluator, IEDataset, SpanEvaluatorPerChar, logger, tqdm
 from transformers import BertTokenizerFast
 from torch.utils.data import DataLoader
 
@@ -95,7 +95,10 @@ def do_eval():
 
     test_data_loader = DataLoader(
         test_ds, batch_size=args.batch_size, shuffle=False)
-    metric = SpanEvaluator()
+    if args.per_char:
+        metric = SpanEvaluatorPerChar()
+    else:
+        metric = SpanEvaluator()
     precision, recall, f1 = evaluate(
         model, metric, test_data_loader, args.device)
     logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f" %
@@ -116,6 +119,8 @@ if __name__ == "__main__":
                         help="The maximum total input sequence length after tokenization.")
     parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu",
                         help="Select which device to run model, defaults to gpu.")
+    parser.add_argument('--per_char', action='store_true',
+                        help="Compute precision, f1 and recall per char.")
 
     args = parser.parse_args()
 

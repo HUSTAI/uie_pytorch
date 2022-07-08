@@ -14,6 +14,7 @@
 
 import contextlib
 import functools
+from itertools import chain
 import json
 import logging
 import math
@@ -197,6 +198,96 @@ class SpanEvaluator:
         num_correct = len(pred_set & label_set)
         num_infer = len(pred_set)
         num_label = len(label_set)
+        return (num_correct, num_infer, num_label)
+
+    def accumulate(self):
+        """
+        This function returns the mean precision, recall and f1 score for all accumulated minibatches.
+
+        Returns:
+            tuple: Returns tuple (`precision, recall, f1 score`).
+        """
+        precision = float(self.num_correct_spans /
+                          self.num_infer_spans) if self.num_infer_spans else 0.
+        recall = float(self.num_correct_spans /
+                       self.num_label_spans) if self.num_label_spans else 0.
+        f1_score = float(2 * precision * recall /
+                         (precision + recall)) if self.num_correct_spans else 0.
+        return precision, recall, f1_score
+
+    def reset(self):
+        """
+        Reset function empties the evaluation memory for previous mini-batches.
+        """
+        self.num_infer_spans = 0
+        self.num_label_spans = 0
+        self.num_correct_spans = 0
+
+    def name(self):
+        """
+        Return name of metric instance.
+        """
+        return "precision", "recall", "f1"
+
+
+class SpanEvaluatorPerChar:
+    """
+    SpanEvaluator computes the precision, recall and F1-score for span detection.
+    """
+
+    def __init__(self):
+        super(SpanEvaluatorPerChar, self).__init__()
+        self.num_infer_spans = 0
+        self.num_label_spans = 0
+        self.num_correct_spans = 0
+
+    def compute(self, start_probs, end_probs, gold_start_ids, gold_end_ids):
+        """
+        Computes the precision, recall and F1-score for span detection.
+        """
+        pred_start_ids = get_bool_ids_greater_than(start_probs)
+        pred_end_ids = get_bool_ids_greater_than(end_probs)
+        gold_start_ids = get_bool_ids_greater_than(gold_start_ids.tolist())
+        gold_end_ids = get_bool_ids_greater_than(gold_end_ids.tolist())
+        num_correct_spans = 0
+        num_infer_spans = 0
+        num_label_spans = 0
+        for predict_start_ids, predict_end_ids, label_start_ids, label_end_ids in zip(
+                pred_start_ids, pred_end_ids, gold_start_ids, gold_end_ids):
+            [_correct, _infer, _label] = self.eval_span(
+                predict_start_ids, predict_end_ids, label_start_ids,
+                label_end_ids)
+            num_correct_spans += _correct
+            num_infer_spans += _infer
+            num_label_spans += _label
+        return num_correct_spans, num_infer_spans, num_label_spans
+
+    def update(self, num_correct_spans, num_infer_spans, num_label_spans):
+        """
+        This function takes (num_infer_spans, num_label_spans, num_correct_spans) as input,
+        to accumulate and update the corresponding status of the SpanEvaluator object.
+        """
+        self.num_infer_spans += num_infer_spans
+        self.num_label_spans += num_label_spans
+        self.num_correct_spans += num_correct_spans
+
+    def eval_span(self, predict_start_ids, predict_end_ids, label_start_ids,
+                  label_end_ids):
+        """
+        evaluate position extraction (start, end)
+        return num_correct, num_infer, num_label
+        input: [1, 2, 10] [4, 12] [2, 10] [4, 11]
+        output: (1, 2, 2)
+        """
+        pred_set = get_span(predict_start_ids, predict_end_ids)
+        label_set = get_span(label_start_ids, label_end_ids)
+        pred_token_set = [list(range(span[0], span[1])) for span in pred_set]
+        pred_token_set = set(chain.from_iterable(pred_token_set))
+        label_token_set = [list(range(span[0], span[1])) for span in label_set]
+        label_token_set = set(chain.from_iterable(label_token_set))
+        num_correct = len(pred_token_set & label_token_set)
+        num_infer = len(pred_token_set)
+        num_label = len(label_token_set)
         return (num_correct, num_infer, num_label)
 
     def accumulate(self):
@@ -1221,10 +1312,10 @@ def examples_cut_sentence(examples, split_on_comma=False):
                             logger.warning(
                                 f"Label 「{text[origin_start_offset:origin_end_offset]}」 split to 「{current_label}」 in 「{current_text}」")
                 for short_text, entity in zip(text_split, entities_split):
-                    if short_text_rstip:=short_text.rstrip():
+                    if short_text_rstip := short_text.rstrip():
                         for e in entity:
-                            if e[1]>len(short_text_rstip):
-                                e[1]=len(short_text_rstip)
+                            if e[1] > len(short_text_rstip):
+                                e[1] = len(short_text_rstip)
                         examples_split.append(json.dumps(
                             {"text": short_text_rstip, "label": entity}))
         else:
@@ -1239,7 +1330,7 @@ def examples_cut_sentence(examples, split_on_comma=False):
                     origin_start_offset = item[0]
                     origin_end_offset = item[1]
                     label = item[2]
-                    entity_name =  text[origin_start_offset:origin_end_offset]
+                    entity_name = text[origin_start_offset:origin_end_offset]
                     start_sent_id, start_offset = _sentence_start_index(
                         text_split, origin_start_offset)
                     end_sent_id, end_offset = _sentence_end_index(
@@ -1265,14 +1356,14 @@ def examples_cut_sentence(examples, split_on_comma=False):
                             logger.warning(
                                 f"Label 「{entity_name}」 split to 「{current_label}」 in 「{current_text}」")
                 for short_text, entity in zip(text_split, entities_split):
-                    if short_text_rstip:=short_text.rstrip():
+                    if short_text_rstip := short_text.rstrip():
                         for e in entity:
-                            if e[1]>len(short_text_rstip):
-                                e[1]=len(short_text_rstip)
+                            if e[1] > len(short_text_rstip):
+                                e[1] = len(short_text_rstip)
                         examples_split.append(json.dumps(
                             {"text": short_text_rstip, "label": entity}))
             else:
                 # Export file in JSONL (relation) format
                 examples_split.append(line)
-    
+
     return examples_split
