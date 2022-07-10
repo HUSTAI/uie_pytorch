@@ -539,12 +539,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     # Required parameters
     parser.add_argument(
+        "-m",
         "--model_path_prefix",
         type=str,
         default='uie_base_pytorch',
-        # required=True,
         help="The path prefix of inference model to be used.", )
     parser.add_argument(
+        "-p",
         "--position_prob",
         default=0.5,
         type=float,
@@ -561,13 +562,15 @@ def parse_args():
         help="The maximum input sequence length. Sequences longer than this will be split automatically.",
     )
     parser.add_argument(
-        '--device',
+        "-D",
+        "--device",
         choices=['cpu', 'gpu'],
         default="gpu",
         help="Select which device to run model, defaults to gpu."
     )
     parser.add_argument(
-        '--engine',
+        "-e",
+        "--engine",
         choices=['pytorch', 'onnx'],
         default="pytorch",
         help="Select which engine to run model, defaults to pytorch."

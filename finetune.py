@@ -203,15 +203,15 @@ if __name__ == "__main__":
     # yapf: disable
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--batch_size", default=16, type=int,
+    parser.add_argument("-b", "--batch_size", default=16, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--learning_rate", default=1e-5,
                         type=float, help="The initial learning rate for Adam.")
-    parser.add_argument("--train_path", default=None, required=True,
+    parser.add_argument("-t", "--train_path", default=None, required=True,
                         type=str, help="The path of train set.")
-    parser.add_argument("--dev_path", default=None, required=True,
+    parser.add_argument("-d", "--dev_path", default=None, required=True,
                         type=str, help="The path of dev set.")
-    parser.add_argument("--save_dir", default='./checkpoint', type=str,
+    parser.add_argument("-s", "--save_dir", default='./checkpoint', type=str,
                         help="The output directory where the model checkpoints will be written.")
     parser.add_argument("--max_seq_len", default=512, type=int, help="The maximum input sequence length. "
                         "Sequences longer than this will be split automatically.")
@@ -223,9 +223,9 @@ if __name__ == "__main__":
                         type=int, help="The interval steps to logging.")
     parser.add_argument("--valid_steps", default=100, type=int,
                         help="The interval steps to evaluate model performance.")
-    parser.add_argument('--device', choices=['cpu', 'gpu'], default="gpu",
+    parser.add_argument("-D", '--device', choices=['cpu', 'gpu'], default="gpu",
                         help="Select which device to train model, defaults to gpu.")
-    parser.add_argument("--model", default="uie_base_pytorch", type=str,
+    parser.add_argument("-m", "--model", default="uie_base_pytorch", type=str,
                         help="Select the pretrained model for few-shot learning.")
     parser.add_argument("--max_model_num", default=5, type=int,
                         help="Max number of saved model. Best model and earlystopping model is not included.")

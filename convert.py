@@ -199,13 +199,13 @@ def extract_and_convert(input_dir, output_dir):
         words = f.read().splitlines()
     words_set = set()
     words_duplicate_indices = []
-    for i in range(len(words)-1,-1,-1):
+    for i in range(len(words)-1, -1, -1):
         word = words[i]
         if word in words_set:
             words_duplicate_indices.append(i)
         words_set.add(word)
     for i, idx in enumerate(words_duplicate_indices):
-        words[idx] = chr(0x1F6A9+i) # Change duplicated word to 🚩 LOL
+        words[idx] = chr(0x1F6A9+i)  # Change duplicated word to 🚩 LOL
     with open(os.path.join(output_dir, 'vocab.txt'), 'wt', encoding='utf-8') as f:
         for word in words:
             f.write(word+'\n')
@@ -375,9 +375,9 @@ def do_main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_model", default="uie-base", type=str,
+    parser.add_argument("-i", "--input_model", default="uie-base", type=str,
                         help="Directory of input paddle model.\n Will auto download model [uie-base/uie-tiny]")
-    parser.add_argument("--output_model", default="uie_base_pytorch", type=str,
+    parser.add_argument("-o", "--output_model", default="uie_base_pytorch", type=str,
                         help="Directory of output pytorch model")
     parser.add_argument("--no_validate_output", action="store_true",
                         help="Directory of output pytorch model")
