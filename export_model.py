@@ -161,9 +161,9 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=Path, required=True,
+    parser.add_argument("-m", "--model_path", type=Path, required=True,
                         default='./checkpoint/model_best', help="The path to model parameters to be loaded.")
-    parser.add_argument("--output_path", type=Path, default=None,
+    parser.add_argument("-o", "--output_path", type=Path, default=None,
                         help="The path of model parameter in static graph to be saved.")
     args = parser.parse_args()
 

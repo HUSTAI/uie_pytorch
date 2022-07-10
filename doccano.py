@@ -121,9 +121,9 @@ if __name__ == "__main__":
     # yapf: disable
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--doccano_file", default="./data/doccano.json",
+    parser.add_argument("-d", "--doccano_file", default="./data/doccano.json",
                         type=str, help="The doccano file exported from doccano platform.")
-    parser.add_argument("--save_dir", default="./data",
+    parser.add_argument("-s", "--save_dir", default="./data",
                         type=str, help="The path of data that you wanna save.")
     parser.add_argument("--negative_ratio", default=5, type=int,
                         help="Used only for the extraction task, the ratio of positive and negative samples, number of negtive samples = negative_ratio * number of positive samples")
