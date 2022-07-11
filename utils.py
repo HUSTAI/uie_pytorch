@@ -1250,6 +1250,8 @@ def examples_cut_sentence(examples, split_on_comma=False):
             text_split = cut_chinese_sent(
                 text, rstrip=False, split_on_comma=split_on_comma)
             assert len("".join(text_split)) == len(text)
+            if len(text_split) == 1:
+                return []
             entities_split = [[]]*len(text_split)
             if not relation_mode:
                 # Export file in JSONL format which doccano < 1.7.0
@@ -1278,7 +1280,7 @@ def examples_cut_sentence(examples, split_on_comma=False):
                                     [0, len(text_split[text_id]), label])
                             current_text = text_split[text_id]
                             current_entity = entities_split[text_id][-1]
-                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            current_label = current_text[current_entity[0]                                                         :current_entity[1]]
                             logger.warning(
                                 f"Label 「{text[origin_start_offset:origin_end_offset]}」 split to 「{current_label}」 in 「{current_text}」")
             else:
@@ -1308,7 +1310,7 @@ def examples_cut_sentence(examples, split_on_comma=False):
                                     [0, len(text_split[text_id]), label])
                             current_text = text_split[text_id]
                             current_entity = entities_split[text_id][-1]
-                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            current_label = current_text[current_entity[0]                                                         :current_entity[1]]
                             logger.warning(
                                 f"Label 「{text[origin_start_offset:origin_end_offset]}」 split to 「{current_label}」 in 「{current_text}」")
                 for short_text, entity in zip(text_split, entities_split):
@@ -1325,6 +1327,8 @@ def examples_cut_sentence(examples, split_on_comma=False):
                 text_split = cut_chinese_sent(
                     text, rstrip=False, split_on_comma=split_on_comma)
                 assert len("".join(text_split)) == len(text)
+                if len(text_split) == 1:
+                    return []
                 entities_split = [[] for _ in range(len(text_split))]
                 for item in items["label"]:
                     origin_start_offset = item[0]
@@ -1352,7 +1356,7 @@ def examples_cut_sentence(examples, split_on_comma=False):
                                     [0, len(text_split[text_id]), label])
                             current_text = text_split[text_id]
                             current_entity = entities_split[text_id][-1]
-                            current_label = current_text[current_entity[0]:current_entity[1]]
+                            current_label = current_text[current_entity[0]                                                         :current_entity[1]]
                             logger.warning(
                                 f"Label 「{entity_name}」 split to 「{current_label}」 in 「{current_text}」")
                 for short_text, entity in zip(text_split, entities_split):
