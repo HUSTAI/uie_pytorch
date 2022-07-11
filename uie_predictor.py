@@ -369,35 +369,39 @@ class UIEPredictor(object):
         token_type_ids = []
         attention_mask = []
         offset_maps = []
-        for example in short_inputs:
-            encoded_inputs = self._tokenizer(
-                text=[example["prompt"]],
-                text_pair=[example["text"]],
-                stride=len(example["prompt"]),
-                truncation=True,
-                max_length=self._max_seq_len,
-                add_special_tokens=True,
-                return_offsets_mapping=True,
-                return_tensors="np")
 
-            def _pad(x):
-                return np.pad(x, (0, self._max_seq_len-x.shape[-1]), 'constant')
-            input_ids.append(_pad(encoded_inputs["input_ids"][0]))
-            token_type_ids.append(_pad(encoded_inputs["token_type_ids"][0]))
-            attention_mask.append(_pad(encoded_inputs["attention_mask"][0]))
-            offset_maps.append(encoded_inputs["offset_mapping"][0])
+        encoded_inputs = self._tokenizer(
+            text=short_texts_prompts,
+            text_pair=short_input_texts,
+            stride=2,
+            truncation=True,
+            max_length=self._max_seq_len,
+            padding="longest",
+            add_special_tokens=True,
+            return_offsets_mapping=True,
+            return_tensors="np")
 
-        input_dict = {
-            "input_ids": np.array(
-                input_ids, dtype="int64"),
-            "token_type_ids": np.array(
-                token_type_ids, dtype="int64"),
-            "attention_mask": np.array(
-                attention_mask, dtype="int64")
-        }
+        start_prob_concat, end_prob_concat = [], []
+        for batch_start in range(0, len(short_input_texts), self._batch_size):
+            input_ids = encoded_inputs["input_ids"][batch_start:batch_start+self._batch_size]
+            token_type_ids = encoded_inputs["token_type_ids"][batch_start:batch_start+self._batch_size]
+            attention_mask = encoded_inputs["attention_mask"][batch_start:batch_start+self._batch_size]
+            offset_maps = encoded_inputs["offset_mapping"][batch_start:batch_start+self._batch_size]
+            input_dict = {
+                "input_ids": np.array(
+                    input_ids, dtype="int64"),
+                "token_type_ids": np.array(
+                    token_type_ids, dtype="int64"),
+                "attention_mask": np.array(
+                    attention_mask, dtype="int64")
+            }
 
-        outputs = self.inference_backend.infer(input_dict)
-        start_prob, end_prob = outputs[0], outputs[1]
+            outputs = self.inference_backend.infer(input_dict)
+            start_prob, end_prob = outputs[0], outputs[1]
+            start_prob_concat.append(start_prob)
+            end_prob_concat.append(end_prob)
+        start_prob_concat = np.stack(start_prob_concat)
+        end_prob_concat = np.stack(end_prob_concat)
 
         start_ids_list = get_bool_ids_greater_than(
             start_prob, limit=self._position_prob, return_prob=True)
@@ -542,7 +546,7 @@ def parse_args():
         "-m",
         "--model_path_prefix",
         type=str,
-        default='uie_base_pytorch',
+        default='checkpoint_ccks_bbs/model_best',
         help="The path prefix of inference model to be used.", )
     parser.add_argument(
         "-p",
@@ -581,7 +585,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    args.schema = ['航母']
+    args.schema = ['装备']
     uie = UIEPredictor(task_path=args.model_path_prefix, schema=args.schema, engine=args.engine, device=args.device,
-                       position_prob=args.position_prob, max_seq_len=args.max_seq_len, batch_size=64, split_sentence=False, use_fp16=args.use_fp16)
-    print(uie("印媒所称的“印度第一艘国产航母”—“维克兰特”号"))
+                       position_prob=args.position_prob, max_seq_len=args.max_seq_len, batch_size=1, split_sentence=False, use_fp16=args.use_fp16)
+    print(uie(["印媒所称的“印度第一艘国产航母”—“维克兰特”号", "“印度第一艘国产航母”—“维克兰特”号"]))
