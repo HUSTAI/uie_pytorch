@@ -404,9 +404,9 @@ class UIEPredictor(object):
         end_prob_concat = np.concatenate(end_prob_concat)
 
         start_ids_list = get_bool_ids_greater_than(
-            start_prob, limit=self._position_prob, return_prob=True)
+            start_prob_concat, limit=self._position_prob, return_prob=True)
         end_ids_list = get_bool_ids_greater_than(
-            end_prob, limit=self._position_prob, return_prob=True)
+            end_prob_concat, limit=self._position_prob, return_prob=True)
 
         input_ids = input_dict['input_ids']
         sentence_ids = []
