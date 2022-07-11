@@ -400,8 +400,8 @@ class UIEPredictor(object):
             start_prob, end_prob = outputs[0], outputs[1]
             start_prob_concat.append(start_prob)
             end_prob_concat.append(end_prob)
-        start_prob_concat = np.stack(start_prob_concat)
-        end_prob_concat = np.stack(end_prob_concat)
+        start_prob_concat = np.concatenate(start_prob_concat)
+        end_prob_concat = np.concatenate(end_prob_concat)
 
         start_ids_list = get_bool_ids_greater_than(
             start_prob, limit=self._position_prob, return_prob=True)
@@ -587,5 +587,5 @@ if __name__ == '__main__':
     args = parse_args()
     args.schema = ['装备']
     uie = UIEPredictor(task_path=args.model_path_prefix, schema=args.schema, engine=args.engine, device=args.device,
-                       position_prob=args.position_prob, max_seq_len=args.max_seq_len, batch_size=1, split_sentence=False, use_fp16=args.use_fp16)
-    print(uie(["印媒所称的“印度第一艘国产航母”—“维克兰特”号", "“印度第一艘国产航母”—“维克兰特”号"]))
+                       position_prob=args.position_prob, max_seq_len=args.max_seq_len, batch_size=3, split_sentence=False, use_fp16=args.use_fp16)
+    print(uie(["印媒所称的“印度第一艘国产航母”—“维克兰特”号", "“印度第一艘国产航母”—“维克兰特”号", "“维克兰特”号"]))
