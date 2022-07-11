@@ -186,33 +186,33 @@ def do_train():
                     tokenizer.save_pretrained(save_dir)
                 tic_train = time.time()
 
-            if args.early_stopping:
-                dev_loss_avg, precision, recall, f1 = evaluate(
-                    model, metric, data_loader=dev_data_loader, device=args.device, loss_fn=criterion)
+        if args.early_stopping:
+            dev_loss_avg, precision, recall, f1 = evaluate(
+                model, metric, data_loader=dev_data_loader, device=args.device, loss_fn=criterion)
 
-                if show_bar:
-                    train_postfix_info.update({
-                        'F1': f'{f1:.3f}',
-                        'dev loss': f'{dev_loss_avg:.5f}'
-                    })
-                    train_data_iterator.set_postfix(train_postfix_info)
-                    with logging_redirect_tqdm([logger.logger]):
-                        logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, dev loss: %.5f"
-                                    % (precision, recall, f1, dev_loss_avg))
-                else:
+            if show_bar:
+                train_postfix_info.update({
+                    'F1': f'{f1:.3f}',
+                    'dev loss': f'{dev_loss_avg:.5f}'
+                })
+                train_data_iterator.set_postfix(train_postfix_info)
+                with logging_redirect_tqdm([logger.logger]):
                     logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, dev loss: %.5f"
                                 % (precision, recall, f1, dev_loss_avg))
+            else:
+                logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f, dev loss: %.5f"
+                            % (precision, recall, f1, dev_loss_avg))
 
-                # Early Stopping
-                early_stopping(dev_loss_avg, model)
-                if early_stopping.early_stop:
-                    if show_bar:
-                        with logging_redirect_tqdm([logger.logger]):
-                            logger.info("Early stopping")
-                    else:
+            # Early Stopping
+            early_stopping(dev_loss_avg, model)
+            if early_stopping.early_stop:
+                if show_bar:
+                    with logging_redirect_tqdm([logger.logger]):
                         logger.info("Early stopping")
-                    tokenizer.save_pretrained(early_stopping_save_dir)
-                    sys.exit(0)
+                else:
+                    logger.info("Early stopping")
+                tokenizer.save_pretrained(early_stopping_save_dir)
+                sys.exit(0)
 
 
 if __name__ == "__main__":
