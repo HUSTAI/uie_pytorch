@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1000,
                         help="random seed for initialization")
     parser.add_argument("--cut_sentence_type", default=0, type=int, choices=[0, 1, 2],
-                        help="Split paragraphs to sentence type [0/1/2]. "
+                        help="Split paragraphs to sentence type [0/1/2], defaults to 0. "
                         "[0]: Don't cut [1]:Split sentence [2]:Split sentence with origin data retained.")
 
     args = parser.parse_args()
