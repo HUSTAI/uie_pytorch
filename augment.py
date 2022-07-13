@@ -1,16 +1,65 @@
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import math
+import random
+import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import cpu_count
 from pathlib import Path
-import time
-from typing import List, Tuple
-import jieba
-from utils import logger, tqdm, logging_redirect_tqdm
-
-import random
 from random import shuffle
-import uuid
+from typing import List, Tuple
+import queue
+
+import jieba
+from colorama import Fore
+
+from utils import logger, logging_redirect_tqdm, tqdm
+
+
+class EntityChoice:
+    def __init__(self, entity_list: List[str]) -> None:
+        self.entity_list = entity_list.copy()
+        self.entity_list_queue = queue.Queue()
+        entity_list_shuffle = entity_list.copy()
+        random.shuffle(entity_list_shuffle)
+        for e in entity_list:
+            self.entity_list_queue.put_nowait(e)
+
+    def __call__(self):
+        if not self.entity_list_queue.empty():
+            try:
+                return self.entity_list_queue.get_nowait()
+            except queue.Empty:
+                return random.choice(self.entity_list)
+        else:
+            return random.choice(self.entity_list)
+
+
+def txt_to_doccano_line(line: str):
+    data = json.loads(line)
+    doccano_data = {
+        "text": data["content"],
+        "label": [
+            [d['start'], d['end'], data["prompt"]]
+            for d in data["result_list"]
+        ]
+    }
+    return json.dumps(doccano_data, ensure_ascii=False)+"\n"
+
+
+def doccano_to_txt_line(line: str):
+    data = json.loads(line)
+    txt_data = {
+        "content": data["text"],
+        "result_list": [{
+            "text": data["text"][start:end],
+            "start":start,
+            "end":end
+        }for start, end, _ in data["label"]],
+        "prompt": "装备"
+    }
+    return json.dumps(txt_data, ensure_ascii=False)+"\n"
 
 
 def set_seed(seed):
@@ -123,22 +172,21 @@ def random_deletion(words, p):
     return new_words
 
 
-def eda(sentence, stop_words, synonym_replacement_ratio=0.1, random_insertion_ratio=0.1, random_swap_ratio=0.1, random_deletion_ratio=0.1, num_aug=9):
+def eda(words, stop_words, synonym_replacement_ratio=0.1, random_insertion_ratio=0.1, random_swap_ratio=0.1, random_deletion_ratio=0.1, num_aug=9):
     """
     EDA函数
     https://github.com/zhanlaoban/EDA_NLP_for_Chinese
     """
-    words = jieba.lcut(sentence)
-    assert len(sentence) == len("".join(words))
+
     words_with_uuid = [(w, uuid.uuid4()) for w in words]
 
     num_words = len(words_with_uuid)
 
     augmented_words = []
-    num_new_per_technique = int(num_aug/4)+1
+    num_new_per_technique = int(num_aug/3)+1
     n_sr = max(1, int(synonym_replacement_ratio * num_words))
     n_ri = max(1, int(random_insertion_ratio * num_words))
-    n_rs = max(1, int(random_swap_ratio * num_words))
+    # n_rs = max(1, int(random_swap_ratio * num_words))
 
     #print(words, "\n")
 
@@ -152,10 +200,10 @@ def eda(sentence, stop_words, synonym_replacement_ratio=0.1, random_insertion_ra
         a_words = random_insertion(words_with_uuid, n_ri)
         augmented_words.append(a_words)
 
-    # 随机交换rs
-    for _ in range(num_new_per_technique):
-        a_words = random_swap(words_with_uuid, n_rs)
-        augmented_words.append(a_words)
+    # # 随机交换rs
+    # for _ in range(num_new_per_technique):
+    #     a_words = random_swap(words_with_uuid, n_rs)
+    #     augmented_words.append(a_words)
 
     # 随机删除rd
     for _ in range(num_new_per_technique):
@@ -247,63 +295,50 @@ def label_end_uuid(words_with_uuid: List[Tuple[str, uuid.UUID]], idx: int) -> Tu
     raise IndexError
 
 
-def main():
-    load_time = time.time()
-    import synonyms  # 延迟加载，加载太慢了
-    load_time = time.time()-load_time
-    logger.info(f"synonyms loaded! time usage: {load_time:.2f}s")
+def eda_line(line: str, stop_words: List[str], num_aug: int = 9, add_origin: bool = True) -> List[str]:
+    """对一行进行EDA操作
 
-    set_seed(1000)
+    Args:
+        line (str): 一行doccano格式的数据
+        stop_words (List[str]): 停用词表
+        num_aug (int, optional): 新增数据量. Defaults to 9.
+        add_origin (bool, optional): 添加原句. Defaults to true.
 
-    with open(args.doccano_file, 'r', encoding='utf-8') as f:
-        doccano_data = f.readlines()
-
-    with open(args.stopwords_file, 'r', encoding='utf-8') as f:
-        stop_words = [word[:-1] for word in f.readlines()]
-
-    new_data = []
-    executor = ThreadPoolExecutor(max_workers=cpu_count()//2)
-    futures = [executor.submit(process_line, stop_words, line)
-               for line in doccano_data]
-    pbar = tqdm(total=len(doccano_data))
-    for future in as_completed(futures):
-        result = future.result()
-        new_data.extend(result)
-        pbar.update(1)
-    with open(args.output, 'w', encoding='utf-8') as f:
-        f.writelines(new_data)
-
-
-def process_line(stop_words, line):
-    new_data = []
+    Returns:
+        List[str]: EDA操作后的新数据
+    """
     line_data = json.loads(line)
     line_text = line_data['text']
     line_labels = line_data['label']
-    if not args.no_origin:
-        new_data.append(line)  # 先添加原句
+
+    new_data = []
+    if add_origin:
+        new_data.append(line)
+        num_aug -= 1
+
+    words = []
+    last_end = 0
+    for start, end, _ in sorted(set(tuple(item) for item in line_labels)):
+        if start > last_end:
+            words.extend(jieba.lcut(line_text[last_end:start]))
+        words.extend(jieba.lcut(line_text[start:end]))
+        last_end = end
+    if len(line_text) > last_end:
+        words.extend(jieba.lcut(line_text[last_end:len(line_text)]))
+
+    # words = jieba.lcut(line_text)
+    assert len(line_text) == len("".join(words))
     augmented_words, words_with_uuid = eda(
-        line_text, stop_words, num_aug=args.num_augment)
+        words, stop_words, num_aug=num_aug)
+
     labels_with_uuid = []
     try:
-        for start, end, label in line_labels:
-            start_uuid, start_offset = label_start_uuid(
-                words_with_uuid, start)
-            try:
-                assert start_offset == 0
-            except AssertionError:
-                word_start = [w[0]
-                              for w in words_with_uuid if w[1] == start_uuid][0]
-                with logging_redirect_tqdm([logger.logger]):
-                    logger.error(
-                        f'Jieba Cut Error：Label: {line_text[start:end]} start_word: {word_start}')
-                raise
-            end_uuid, end_offset = label_end_uuid(words_with_uuid, end)
-            labels_with_uuid.append(
-                (start_uuid, start_offset, end_uuid, end_offset, label))
+        labels_with_uuid = labels_to_labels_with_uuid(
+            line_text, line_labels, words_with_uuid)
     except AssertionError:
         return new_data
 
-    aug_counter = args.num_augment
+    aug_counter = num_aug
     for aug_words_with_uuid in augmented_words:
         aug_counter -= 1
         if aug_counter < 0:
@@ -312,21 +347,10 @@ def process_line(stop_words, line):
         if aug_sentence == line_text:
             continue
         aug_labels = []
-        if args.verbose > 0:
-            with logging_redirect_tqdm([logger.logger]):
-                logger.info(f"Aug sentence: {aug_sentence}")
+
         try:
-            for start_uuid, start_offset, end_uuid, end_offset, label in labels_with_uuid:
-                start_idx = label_index(
-                    aug_words_with_uuid, start_uuid, start_offset)
-                end_idx = label_index(
-                    aug_words_with_uuid, end_uuid, end_offset)
-                assert end_idx > start_idx
-                aug_labels.append([start_idx, end_idx, label])
-                if args.verbose > 0:
-                    with logging_redirect_tqdm([logger.logger]):
-                        logger.info(
-                            f"Label: {aug_sentence[start_idx:end_idx]}")
+            aug_labels = labels_with_uuid_to_labels(
+                labels_with_uuid, aug_words_with_uuid)
             new_data.append(json.dumps(
                 {"text": aug_sentence, "label": aug_labels}, ensure_ascii=False)+'\n')
         except:
@@ -334,21 +358,222 @@ def process_line(stop_words, line):
                 with logging_redirect_tqdm([logger.logger]):
                     logger.info(f"Skip augment sentence: {aug_sentence}")
             continue
+        if args.verbose > 0:
+            with logging_redirect_tqdm([logger.logger]):
+                sentence_to_print = aug_sentence
+                aug_entitys = [aug_sentence[start:end]
+                               for start, end, _ in aug_labels]
+                for ae in aug_entitys:
+                    sentence_to_print = sentence_to_print.replace(
+                        ae, f"{Fore.GREEN}{ae}{Fore.RESET}")
+                logger.info(f"Eda sentence: {sentence_to_print}")
     return new_data
+
+
+def labels_with_uuid_to_labels(labels_with_uuid, aug_words_with_uuid):
+    aug_labels = []
+    for start_uuid, start_offset, end_uuid, end_offset, label in labels_with_uuid:
+        start_idx = label_index(
+            aug_words_with_uuid, start_uuid, start_offset)
+        end_idx = label_index(
+            aug_words_with_uuid, end_uuid, end_offset)
+        assert end_idx > start_idx
+        aug_labels.append([start_idx, end_idx, label])
+    return aug_labels
+
+
+def labels_to_labels_with_uuid(line_text, line_labels, words_with_uuid):
+    labels_with_uuid = []
+    for start, end, label in line_labels:
+        start_uuid, start_offset = label_start_uuid(
+            words_with_uuid, start)
+        try:
+            assert start_offset == 0
+        except AssertionError:
+            word_start = [w[0]
+                          for w in words_with_uuid if w[1] == start_uuid][0]
+            with logging_redirect_tqdm([logger.logger]):
+                logger.error(
+                    f'Jieba Cut Error：Label: {line_text[start:end]} start_word: {word_start}')
+            raise
+        end_uuid, end_offset = label_end_uuid(words_with_uuid, end)
+        labels_with_uuid.append(
+            (start_uuid, start_offset, end_uuid, end_offset, label))
+    return labels_with_uuid
+
+
+def entity_replacement(line: str, num_aug: int, entity_choice: EntityChoice, add_origin: bool = True) -> List[str]:
+    """根据实体列表中的实体替换数据中的实体
+
+    例如
+    `歼15是...`
+    替换为
+    `辽宁舰是...`
+
+    Args:
+        line (str): 一行数据，doccano格式
+        num_aug (int): 增强数据数量
+        entity_list (List[str]): 实体列表
+        add_origin (bool, optional): 是否添加原句. Defaults to True.
+
+    Returns:
+        List[str]: 新数据
+    """
+    line_data = json.loads(line)
+    line_text = line_data['text']
+    line_labels = line_data['label']
+
+    new_data = []
+    if add_origin:
+        new_data.append(line)  # 先添加原句
+        num_aug -= 1
+    if not line_labels:
+        # 没有标注提及
+        return new_data
+    for _ in range(num_aug):
+        new_sentence = line_text
+        entitys = list(sorted(set(tuple(item)
+                       for item in line_labels)))
+        new_labels = []
+        offset = 0
+        new_end = 0
+
+        for start, end, label in entitys:
+            old_entity = line_text[start:end]
+            start = start+offset
+            end = end+offset
+            assert start >= new_end, "Nested entity detected!"
+            entity = entity_choice()
+            new_end = start+len(entity)
+
+            new_sentence = list(new_sentence)
+            new_sentence[start:end] = list(entity)
+            new_sentence = ''.join(new_sentence)
+
+            offset += new_end-end
+
+            new_labels.append([start, new_end, label])
+
+            if args.verbose > 0:
+                with logging_redirect_tqdm([logger.logger]):
+                    logger.info(
+                        f"{Fore.BLUE}{old_entity}{Fore.RESET} -> {Fore.BLUE}{entity}{Fore.RESET}")
+
+        if args.verbose > 0:
+            with logging_redirect_tqdm([logger.logger]):
+                sentence_to_print = new_sentence
+                new_entitys = [new_sentence[start:end]
+                               for start, end, _ in new_labels]
+                for ne in new_entitys:
+                    sentence_to_print = sentence_to_print.replace(
+                        ne, f"{Fore.GREEN}{ne}{Fore.RESET}")
+                logger.info(f"Replace sentence: {sentence_to_print}")
+
+        new_data.append(json.dumps(
+            {"text": new_sentence, "label": new_labels}, ensure_ascii=False
+        )+"\n")
+
+        random.shuffle(new_data)
+
+    return new_data
+
+
+def process_line(line: str, stop_words: List[str], entity_choice: EntityChoice) -> List[str]:
+    """对一行进行处理，生成新的数据
+
+    Args:
+        line (str): 输入的一行doccano数据
+        stop_words (List[str]): 停用词表
+        entity_list (List[str]): 实体表
+
+    Returns:
+        List[str]: 新生成的数据
+    """
+    num_aug_eda = int(math.sqrt(args.num_augment))
+    num_aug_entity = num_aug_eda+1 \
+        if num_aug_eda * num_aug_eda < args.num_augment \
+        else num_aug_eda
+    new_data_eda = eda_line(line, stop_words,
+                            num_aug_eda, add_origin=not args.no_origin)
+    new_data = []
+    for new_line in new_data_eda:
+        new_data_entity = entity_replacement(
+            new_line, num_aug_entity, entity_choice)
+        new_data.extend(new_data_entity)
+    if len(new_data) < args.num_augment:
+        new_data.extend(eda_line(line, stop_words,
+                                 args.num_augment-len(new_data),
+                                 add_origin=not args.no_origin))
+    random.shuffle(new_data)
+
+    return new_data[:args.num_augment]
+
+
+def main():
+    logger.info("Start loading synonyms...")
+    load_time = time.time()
+    import synonyms  # 延迟加载，加载太慢了
+    load_time = time.time()-load_time
+    logger.info(f"Synonyms loaded! time usage: {load_time:.2f}s")
+
+    set_seed(1000)
+
+    with open(args.input_file, 'r', encoding='utf-8') as f:
+        doccano_data = f.readlines()
+
+    if 'content' in json.loads(doccano_data[0]):
+        logger.info("Converting txt format to doccano format...")
+        doccano_data = [txt_to_doccano_line(line)
+                        for line in doccano_data]
+
+    with open(args.stopwords_file, 'r', encoding='utf-8') as f:
+        stop_words = [word[:-1] for word in f.readlines()]
+
+    with open(args.entity_file, 'r', encoding='utf-8') as f:
+        entity_list = [word[:-1] for word in f.readlines()]
+
+    entity_choice = EntityChoice(entity_list)
+
+    logger.info("Starting augment...")
+
+    new_data = []
+    if not args.single_thread:
+        executor = ThreadPoolExecutor(max_workers=cpu_count()//2)
+        futures = [executor.submit(process_line, line, stop_words, entity_choice)
+                   for line in doccano_data]
+        pbar = tqdm(total=len(doccano_data))
+        for future in as_completed(futures):
+            result = future.result()
+            new_data.extend(result)
+            pbar.update(1)
+    else:
+        for line in tqdm(doccano_data):
+            new_data.extend(process_line(line, stop_words, entity_choice))
+    if args.output_file.suffix in [".txt"]:
+        logger.info("Converting to txt format...")
+        new_data = [doccano_to_txt_line(line) for line in new_data]
+    if not args.output_file.parent.exists():
+        args.output_file.parent.mkdir()
+    with open(args.output_file, 'w', encoding='utf-8') as f:
+        f.writelines(new_data)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--doccano_file", default=Path("data/军事论坛数据集/doccano_ext.json"),
+    parser.add_argument("-i", "--input_file", default=Path("data/军事论坛数据集/doccano_ext.json"),
                         type=Path, help="The doccano file exported from doccano platform.")
-    parser.add_argument("-o", "--output", default=Path("data/军事论坛数据集/doccano_ext_aug.json"),
+    parser.add_argument("-o", "--output_file", default=Path("data/军事论坛数据集/doccano_ext_aug.json"),
                         type=Path, help="The path of data that you wanna save.")
     parser.add_argument("-s", "--stopwords_file", default=Path("./augment/stopwords/hit_stopwords.txt"),
                         type=Path, help="The path of stop words file.")
+    parser.add_argument("-e", "--entity_file", default=Path("./augment/entity/entity_list.txt"),
+                        type=Path, help="The path of entity list file.")
     parser.add_argument("-n", "--num_augment", type=int, default=9,
                         help="Number of augment sentence per origin sentence, defaults to 9.")
     parser.add_argument("--no_origin", action="store_true",
                         help="No original sentence.")
+    parser.add_argument("--single_thread", action="store_true",
+                        help="Use single thread, donnot use multi-thread.")
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="Verbose level, defaults to 0. -vvv means 3.")
     args = parser.parse_args()

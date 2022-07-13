@@ -117,7 +117,7 @@ def validate_onnx(tokenizer: PreTrainedTokenizerBase, pt_model: PreTrainedModel,
             logger.info(f"\t\t-[✓] all values close (atol: {atol})")
 
 
-def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, model: PreTrainedModel, device: torch.device, input_names: List[str], output_names: List[str]):
+def export_onnx(output_path: Path, tokenizer: PreTrainedTokenizerBase, model: PreTrainedModel, device: torch.device, input_names: List[str], output_names: List[str]):
     with torch.no_grad():
         model = model.to(device)
         model.eval()
@@ -125,9 +125,9 @@ def export_onnx(args: argparse.Namespace, tokenizer: PreTrainedTokenizerBase, mo
         model.config.use_cache = False
 
         # Create folder
-        if not args.output_path.exists():
-            args.output_path.mkdir(parents=True)
-        save_path = args.output_path / "inference.onnx"
+        if not output_path.exists():
+            output_path.mkdir(parents=True)
+        save_path = output_path / "inference.onnx"
 
         dynamic_axes = {name: {0: 'batch', 1: 'sequence'}
                         for name in chain(input_names, output_names)}
@@ -190,7 +190,7 @@ def main():
     logger.info("Export ONNX Model...")
 
     save_path = export_onnx(
-        args, tokenizer, model, device, input_names, output_names)
+        args.output_path, tokenizer, model, device, input_names, output_names)
     validate_onnx(tokenizer, model, save_path)
 
     logger.info(f"All good, model saved at: {save_path.as_posix()}")
