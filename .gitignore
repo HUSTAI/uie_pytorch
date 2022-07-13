@@ -124,7 +124,7 @@ FETCH_HEAD
 # vscode
 .vscode
 
-checkpoint
+checkpoint*
 data/*
 export
 model_best
