@@ -1,0 +1,5 @@
+pytorch
+colorlog
+transformers
+colorama
+flask

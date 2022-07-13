@@ -27,7 +27,6 @@
 # Add from:装备 to:装备
 
 
-import logging
 from pathlib import Path
 import time
 from uie_predictor import UIEPredictor
@@ -44,9 +43,7 @@ class LoggerRequestHandler(WSGIRequestHandler):
             f"{Fore.BLUE}[Request]{Fore.RESET} " + message.rstrip() % args)
 
 
-model_path = "./checkpoint_ccks_aug2_bbs/model_best"
-model_path = Path(model_path)
-if not (model_path/'inference.onnx').exists():
+def convert_static_model(model_path):
     logger.info("Converting PyTorch model to ONNX model...")
     from model import UIE
     import torch
@@ -67,6 +64,14 @@ if not (model_path/'inference.onnx').exists():
     save_path = export_onnx(
         model_path, tokenizer, model, device, input_names, output_names)
     logger.info("Convert complete.")
+
+
+model_path = "./checkpoint_ccks_aug2_bbs/model_best"
+model_path = Path(model_path)
+
+
+if not (model_path/'inference.onnx').exists():
+    convert_static_model(model_path)
 
 uie = UIEPredictor(model_path, schema=['装备'], engine='onnx')
 

@@ -47,6 +47,10 @@ def do_train():
     dev_data_loader = DataLoader(
         dev_ds, batch_size=args.batch_size, shuffle=True)
 
+    if args.valid_steps is None:
+        valid_step_ratio = 1
+        args.valid_steps = (valid_step_ratio*len(dev_data_loader)//100+1)*100
+
     optimizer = torch.optim.AdamW(
         lr=args.learning_rate, params=model.parameters())
 
@@ -125,13 +129,7 @@ def do_train():
                 time_diff = time.time() - tic_train
                 loss_avg = loss_sum / loss_num
 
-                if show_bar:
-                    with logging_redirect_tqdm([logger.logger]):
-                        logger.info(
-                            "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
-                            % (global_step, epoch, loss_avg,
-                               args.logging_steps / time_diff))
-                else:
+                if not show_bar:
                     logger.info(
                         "global step %d, epoch: %d, loss: %.5f, speed: %.2f step/s"
                         % (global_step, epoch, loss_avg,
@@ -237,8 +235,9 @@ if __name__ == "__main__":
                         help="Random seed for initialization")
     parser.add_argument("--logging_steps", default=10,
                         type=int, help="The interval steps to logging.")
-    parser.add_argument("--valid_steps", default=100, type=int,
-                        help="The interval steps to evaluate model performance.")
+    parser.add_argument("--valid_steps", default=None, type=int,
+                        help="The interval steps to evaluate model performance. "
+                        "If not set, the value will be auto set.")
     parser.add_argument("-D", '--device', choices=['cpu', 'gpu'], default="gpu",
                         help="Select which device to train model, defaults to gpu.")
     parser.add_argument("-m", "--model", default="uie_base_pytorch", type=str,
