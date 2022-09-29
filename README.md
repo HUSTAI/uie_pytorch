@@ -17,7 +17,22 @@ PyTorch版功能介绍
 - [1. 模型简介](#模型简介)
 - [2. 应用示例](#应用示例)
 - [3. 开箱即用](#开箱即用)
-- [4. 轻定制功能](#轻定制功能)
+  - [3.1 实体抽取](#实体抽取)
+  - [3.2 关系抽取](#关系抽取)
+  - [3.3 事件抽取](#事件抽取)
+  - [3.4 评论观点抽取](#评论观点抽取)
+  - [3.5 情感分类](#情感分类)
+  - [3.6 跨任务抽取](#跨任务抽取)
+  - [3.7 模型选择](#模型选择)
+  - [3.8 更多配置](#更多配置)
+- [4. 训练定制](#训练定制)
+  - [4.1 代码结构](#代码结构)
+  - [4.2 数据标注](#数据标注)
+  - [4.3 模型微调](#模型微调)
+  - [4.4 模型评估](#模型评估)
+  - [4.5 定制模型一键预测](#定制模型一键预测)
+  - [4.6 实验指标](#实验指标)
+  - [4.7 模型部署](#模型部署)
 
 <a name="模型简介"></a>
 
@@ -97,19 +112,19 @@ python convert.py --no_validate_output
 - `output_model`: 输出的模型的文件夹，默认为`uie_base_pytorch`。
 - `no_validate_output`：是否关闭对输出模型的验证，默认打开。
 
-#### 支持多场景信息抽取任务
+<a name="实体抽取"></a>
 
-- 命名实体识别
+#### 3.1 实体抽取
 
   命名实体识别（Named Entity Recognition，简称NER），是指识别文本中具有特定意义的实体。在开放域信息抽取中，抽取的类别没有限制，用户可以自己定义。
 
-  例如抽取的目标实体类型是"时间"、"选手"和"赛事名称", schema构造如下：
+  - 例如抽取的目标实体类型是"时间"、"选手"和"赛事名称", schema构造如下：
 
   ```text
   ['时间', '选手', '赛事名称']
   ```
 
-  预测：
+    调用示例：
 
   ```python
   >>> from uie_predictor import UIEPredictor
@@ -132,7 +147,7 @@ python convert.py --no_validate_output
             'text': '谷爱凌'}]}]
   ```
 
-  例如抽取的目标实体类型是"肿瘤的大小"、"肿瘤的个数"、"肝癌级别"和"脉管内癌栓分级", schema构造如下：
+  - 例如抽取的目标实体类型是"肿瘤的大小"、"肿瘤的个数"、"肝癌级别"和"脉管内癌栓分级", schema构造如下：
 
   ```text
   ['肿瘤的大小', '肿瘤的个数', '肝癌级别', '脉管内癌栓分级']
@@ -140,7 +155,7 @@ python convert.py --no_validate_output
 
   在上例中我们已经实例化了一个`UIEPredictor`对象，这里可以通过`set_schema`方法重置抽取目标。
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = ['肿瘤的大小', '肿瘤的个数', '肝癌级别', '脉管内癌栓分级']
@@ -165,10 +180,13 @@ python convert.py --no_validate_output
   ```
 
 - 关系抽取
+<a name="关系抽取"></a>
+
+#### 3.2 关系抽取
 
   关系抽取（Relation Extraction，简称RE），是指从文本中识别实体并抽取实体之间的语义关系，进而获取三元组信息，即<主体，谓语，客体>。
 
-  例如以"竞赛名称"作为抽取主体，抽取关系类型为"主办方"、"承办方"和"已举办次数", schema构造如下：
+  - 例如以"竞赛名称"作为抽取主体，抽取关系类型为"主办方"、"承办方"和"已举办次数", schema构造如下：
 
   ```text
   {
@@ -180,7 +198,7 @@ python convert.py --no_validate_output
   }
   ```
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = {'竞赛名称': ['主办方', '承办方', '已举办次数']} # Define the schema for relation extraction
@@ -216,11 +234,13 @@ python convert.py --no_validate_output
               'text': '2022语言与智能技术竞赛'}]}]
   ```
 
-- 事件抽取
+<a name="事件抽取"></a>
 
-  事件抽取 (Event Extraction, 简称EE)，是指从自然语言文本中抽取预定义的事件触发词和事件要素，组合为相应的结构化信息。
+#### 3.3 事件抽取
 
-  例如抽取的目标是"地震"事件的"地震强度"、"时间"、"震中位置"和"震源深度"这些信息，schema构造如下：
+  事件抽取 (Event Extraction, 简称EE)，是指从自然语言文本中抽取预定义的事件触发词(Trigger)和事件论元(Argument)，组合为相应的事件结构化信息。
+
+  - 例如抽取的目标是"地震"事件的"地震强度"、"时间"、"震中位置"和"震源深度"这些信息，schema构造如下：
 
   ```text
   {
@@ -233,9 +253,9 @@ python convert.py --no_validate_output
   }
   ```
 
-  触发词的格式统一为`XX触发词`，`XX`表示具体事件类型，上例中的事件类型是`地震`，则对应触发词为`地震触发词`。
+    触发词的格式统一为`触发词`或``XX触发词`，`XX`表示具体事件类型，上例中的事件类型是`地震`，则对应触发词为`地震触发词`。
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = {'地震触发词': ['地震强度', '时间', '震中位置', '震源深度']} # Define the schema for event extraction
@@ -244,11 +264,13 @@ python convert.py --no_validate_output
   [{'地震触发词': [{'text': '地震', 'start': 56, 'end': 58, 'probability': 0.9987181623528585, 'relations': {'地震强度': [{'text': '3.5级', 'start': 52, 'end': 56, 'probability': 0.9962985320905915}], '时间': [{'text': '5月16日06时08分', 'start': 11, 'end': 22, 'probability': 0.9882578028575182}], '震中位置': [{'text': '云南临沧市凤庆县(北纬24.34度，东经99.98度)', 'start': 23, 'end': 50, 'probability': 0.8551415716584501}], '震源深度': [{'text': '10千米', 'start': 63, 'end': 67, 'probability': 0.999158304648045}]}}]}]
   ```
 
-- 评论观点抽取
+<a name="评论观点抽取"></a>
+
+#### 3.4 评论观点抽取
 
   评论观点抽取，是指抽取文本中包含的评价维度、观点词。
 
-  例如抽取的目标是文本中包含的评价维度及其对应的观点词和情感倾向，schema构造如下：
+  - 例如抽取的目标是文本中包含的评价维度及其对应的观点词和情感倾向，schema构造如下：
 
   ```text
   {
@@ -259,7 +281,7 @@ python convert.py --no_validate_output
   }
   ```
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = {'评价维度': ['观点词', '情感倾向[正向，负向]']} # Define the schema for opinion extraction
@@ -287,15 +309,17 @@ python convert.py --no_validate_output
               'text': '店面'}]}]
   ```
 
-- 情感倾向分类
+<a name="情感分类"></a>
 
-  句子级情感倾向分类，即判断句子的情感倾向是“正向”还是“负向”，schema构造如下：
+#### 3.5 情感分类
+
+  - 句子级情感倾向分类，即判断句子的情感倾向是“正向”还是“负向”，schema构造如下：
 
   ```text
   '情感倾向[正向，负向]'
   ```
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = '情感倾向[正向，负向]' # Define the schema for sentence-level sentiment classification
@@ -304,9 +328,11 @@ python convert.py --no_validate_output
   [{'情感倾向[正向，负向]': [{'text': '正向', 'probability': 0.9988661643929895}]}]
   ```
 
-- 跨任务抽取
+<a name="跨任务抽取"></a>
 
-  例如在法律场景同时对文本进行实体抽取和关系抽取，schema可按照如下方式进行构造：
+#### 3.6 跨任务抽取
+
+  - 例如在法律场景同时对文本进行实体抽取和关系抽取，schema可按照如下方式进行构造：
 
   ```text
   [
@@ -320,7 +346,7 @@ python convert.py --no_validate_output
   ]
   ```
 
-  预测：
+    调用示例：
 
   ```python
   >>> schema = ['法院', {'原告': '委托代理人'}, {'被告': '委托代理人'}]
@@ -348,46 +374,61 @@ python convert.py --no_validate_output
             'text': 'B公司'}]}]
   ```
 
+<a name="模型选择"></a>
 
-#### 多模型选择，满足精度、速度要求
+#### 3.7 模型选择
 
-- 模型选择
+- 多模型选择，满足精度、速度要求
 
-  | 模型 |  结构  |
-  | :---: | :--------: |
-  | `uie-base` (默认)| 12-layers, 768-hidden, 12-heads |
-  | `uie-tiny`(弃用，已改为`uie-medium`)| 6-layers, 768-hidden, 12-heads |
-  | `uie-medium`| 6-layers, 768-hidden, 12-heads |
-  | `uie-mini`| 6-layers, 384-hidden, 12-heads |
-  | `uie-micro`| 4-layers, 384-hidden, 12-heads |
-  | `uie-nano`| 4-layers, 312-hidden, 12-heads |
-  | `uie-medical-base` | 12-layers, 768-hidden, 12-heads |
+  | 模型 |  结构  | 语言 |
+  | :---: | :--------: | :--------: |
+  | `uie-base` (默认)| 12-layers, 768-hidden, 12-heads | 中文 |
+  | `uie-base-en` | 12-layers, 768-hidden, 12-heads | 英文 |
+  | `uie-medical-base` | 12-layers, 768-hidden, 12-heads | 中文 |
+  | `uie-medium`| 6-layers, 768-hidden, 12-heads | 中文 |
+  | `uie-mini`| 6-layers, 384-hidden, 12-heads | 中文 |
+  | `uie-micro`| 4-layers, 384-hidden, 12-heads | 中文 |
+  | `uie-nano`| 4-layers, 312-hidden, 12-heads | 中文 |
+  | `uie-m-large`| 24-layers, 1024-hidden, 16-heads | 中、英文 |
+  | `uie-m-base`| 12-layers, 768-hidden, 12-heads | 中、英文 |
 
-- 使用`UIE-Tiny`进行预测
+
+- `uie-nano`调用示例：
 
   ```python
   >>> from uie_predictor import UIEPredictor
 
   >>> schema = ['时间', '选手', '赛事名称']
-  >>> ie = UIEPredictor('./uie_tiny_pytorch', schema=schema)
+  >>> ie = UIEPredictor('./uie_nano_pytorch', schema=schema)
   >>> ie("2月8日上午北京冬奥会自由式滑雪女子大跳台决赛中中国选手谷爱凌以188.25分获得金牌！")
-  [{'时间': [{'text': '2月8日上午', 'start': 0, 'end': 6, 'probability': 0.9492842181233527}], '选手': [{'text': '谷爱凌', 'start': 28, 'end': 31, 'probability': 0.7277186614493836}], '赛事名称': [{'text': '北京冬奥会自由式滑雪女子大跳台决赛', 'start': 6, 'end': 23, 'probability': 0.8751028059367947}]}]
+  [{'时间': [{'text': '2月8日上午', 'start': 0, 'end': 6, 'probability': 0.6513581678349247}], '选手': [{'text': '谷爱凌', 'start': 28, 'end': 31, 'probability': 0.9819330659468051}], '赛事名称': [{'text': '北京冬奥会自由式滑雪女子大跳台决赛', 'start': 6, 'end': 23, 'probability': 0.4908131110420939}]}]
   ```
 
-#### 可配置参数说明
+<a name="更多配置"></a>
+
+#### 3.8 更多配置
+
+```python
+>>> from uie_predictor import UIEPredictor
+
+>>> ie = UIEPredictor('./uie_nano_pytorch',   
+                       schema=schema)  
+```
+
+* `schema`：定义任务抽取目标，可参考开箱即用中不同任务的调用示例进行配置。
 * `batch_size`：批处理大小，请结合机器情况进行调整，默认为1。
 * `task_path`：任务使用的模型。
-* `schema`：定义任务抽取目标，可参考示例中对于不同信息抽取任务的schema配置自定义抽取目标。
-* `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
+* `position_prob`：模型对于span的起始位置/终止位置的结果概率在0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
 * `use_fp16`：是否使用`fp16`进行加速，默认关闭。`fp16`推理速度更快。如果选择`fp16`，请先确保机器正确安装NVIDIA相关驱动和基础软件，**确保CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保GPU设备的CUDA计算能力（CUDA Compute Capability）大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
 
-<a name="轻定制功能"></a>
+<a name="训练定制"></a>
 
-## 4. 轻定制功能
+## 4. 训练定制
 
 对于简单的抽取目标可以直接使用```UIEPredictor```实现零样本（zero-shot）抽取，对于细分场景我们推荐使用轻定制功能（标注少量数据进行模型微调）以进一步提升效果。下面通过`报销工单信息抽取`的例子展示如何通过5条训练数据进行UIE模型微调。
+<a name="代码结构"></a>
 
-#### 代码结构
+#### 4.1 代码结构
 
 ```shell
 .
@@ -401,9 +442,10 @@ python convert.py --no_validate_output
 ```
 
 <a name="数据标注"></a>
-#### 数据标注
 
-我们推荐使用数据标注平台[doccano](https://github.com/doccano/doccano) 进行数据标注，本示例也打通了从标注到训练的通道，即doccano导出数据后可通过[doccano.py](./doccano.py)脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。
+#### 4.2 数据标注
+
+我们推荐使用数据标注平台[doccano](https://github.com/doccano/doccano) 进行数据标注，本示例也打通了从标注到训练的通道，即doccano导出数据后可通过[doccano.py](./doccano.py)脚本轻松将数据转换为输入模型时需要的形式，实现无缝衔接。标注方法的详细介绍请参考[doccano数据标注指南](doccano.md)。
 
 原始数据示例：
 
@@ -434,10 +476,11 @@ schema = ['出发地', '目的地', '费用', '时间']
 ```shell
 python doccano.py \
     --doccano_file ./data/doccano_ext.json \
-    --task_type "ext" \
+    --task_type ext \
     --save_dir ./data \
-    --splits 0.1 0.9 0
+    --splits 0.8 0.2 0
 ```
+
 
 可配置参数说明：
 
@@ -446,10 +489,11 @@ python doccano.py \
 - ``negative_ratio``: 最大负例比例，该参数只对抽取类型任务有效，适当构造负例可提升模型效果。负例数量和实际的标签数量有关，最大负例数量 = negative_ratio * 正例数量。该参数只对训练集有效，默认为5。为了保证评估指标的准确性，验证集和测试集默认构造全负例。
 - ``splits``: 划分数据集时训练集、验证集所占的比例。默认为[0.8, 0.1, 0.1]表示按照``8:1:1``的比例将数据划分为训练集、验证集和测试集。
 - ``task_type``: 选择任务类型，可选有抽取和分类两种类型的任务。
-- ``options``: 指定分类任务的类别标签，该参数只对分类类型任务有效。
-- ``prompt_prefix``: 声明分类任务的prompt前缀信息，该参数只对分类类型任务有效。
+- ``options``: 指定分类任务的类别标签，该参数只对分类类型任务有效。默认为["正向", "负向"]。
+- ``prompt_prefix``: 声明分类任务的prompt前缀信息，该参数只对分类类型任务有效。默认为"情感倾向"。
 - ``is_shuffle``: 是否对数据集进行随机打散，默认为True。
 - ``seed``: 随机种子，默认为1000.
+- ``separator``: 实体类别/评价维度与分类标签的分隔符，该参数只对实体/评价维度级分类任务有效。默认为"##"。
 
 备注：
 - 默认情况下 [doccano.py](./doccano.py) 脚本会按照比例将数据划分为 train/dev/test 数据集
@@ -459,8 +503,21 @@ python doccano.py \
 
 更多**不同类型任务（关系抽取、事件抽取、评价观点抽取等）的标注规则及参数说明**，请参考[doccano数据标注指南](doccano.md)。
 
+此外，也可以通过数据标注平台 [Label Studio](https://labelstud.io/) 进行数据标注。本示例提供了 [labelstudio2doccano.py](./labelstudio2doccano.py) 脚本，将 label studio 导出的 JSON 数据文件格式转换成 doccano 导出的数据文件格式，后续的数据转换与模型微调等操作不变。
+
+```shell
+python labelstudio2doccano.py --labelstudio_file label-studio.json
+```
+
+可配置参数说明：
+
+- ``labelstudio_file``: label studio 的导出文件路径（仅支持 JSON 格式）。
+- ``doccano_file``: doccano 格式的数据文件保存路径，默认为 "doccano_ext.jsonl"。
+- ``task_type``: 任务类型，可选有抽取（"ext"）和分类（"cls"）两种类型的任务，默认为 "ext"。
+
 <a name="模型微调"></a>
-#### 模型微调
+
+#### 4.3 模型微调
 
 通过运行以下命令进行模型微调：
 
@@ -486,41 +543,76 @@ python finetune.py \
 - `dev_path`: 验证集文件路径。
 - `save_dir`: 模型存储路径，默认为`./checkpoint`。
 - `learning_rate`: 学习率，默认为1e-5。
-- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为16。
+- `batch_size`: 批处理大小，请结合机器情况进行调整，默认为16。
 - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
 - `num_epochs`: 训练轮数，默认为100。
 - `model`: 选择模型，程序会基于选择的模型进行模型微调，默认为`uie_base_pytorch`。
 - `seed`: 随机种子，默认为1000.
 - `logging_steps`: 日志打印的间隔steps数，默认10。
 - `valid_steps`: evaluate的间隔steps数，默认100。
-- `device`: 选用进行训练的设备，可选`cpu`或`gpu`。
+- `device`: 选用什么设备进行训练，可选cpu或gpu。
 - `max_model_num`: 保存的模型的个数，不包含`model_best`和`early_stopping`保存的模型，默认为5。
 - `early_stopping`: 是否采用提前停止（Early Stopping），默认不使用。
 
 <a name="模型评估"></a>
-#### 模型评估
+
+#### 4.4 模型评估
 
 通过运行以下命令进行模型评估：
 
 ```shell
 python evaluate.py \
-    --model_path "./checkpoint/model_best" \
-    --test_path "./data/dev.txt" \
+    --model_path ./checkpoint/model_best \
+    --test_path ./data/dev.txt \
     --batch_size 16 \
     --max_seq_len 512
 ```
 
 评估方式说明：采用单阶段评价的方式，即关系抽取、事件抽取等需要分阶段预测的任务对每一阶段的预测结果进行分别评价。验证/测试集默认会利用同一层级的所有标签来构造出全部负例。
 
+可开启`debug`模式对每个正例类别分别进行评估，该模式仅用于模型调试：
+
+```shell
+python evaluate.py \
+    --model_path ./checkpoint/model_best \
+    --test_path ./data/dev.txt \
+    --debug
+```
+
+输出打印示例：
+
+```text
+[2022-09-14 03:13:58,877] [    INFO] - -----------------------------
+[2022-09-14 03:13:58,877] [    INFO] - Class Name: 疾病
+[2022-09-14 03:13:58,877] [    INFO] - Evaluation Precision: 0.89744 | Recall: 0.83333 | F1: 0.86420
+[2022-09-14 03:13:59,145] [    INFO] - -----------------------------
+[2022-09-14 03:13:59,145] [    INFO] - Class Name: 手术治疗
+[2022-09-14 03:13:59,145] [    INFO] - Evaluation Precision: 0.90000 | Recall: 0.85714 | F1: 0.87805
+[2022-09-14 03:13:59,439] [    INFO] - -----------------------------
+[2022-09-14 03:13:59,440] [    INFO] - Class Name: 检查
+[2022-09-14 03:13:59,440] [    INFO] - Evaluation Precision: 0.77778 | Recall: 0.56757 | F1: 0.65625
+[2022-09-14 03:13:59,708] [    INFO] - -----------------------------
+[2022-09-14 03:13:59,709] [    INFO] - Class Name: X的手术治疗
+[2022-09-14 03:13:59,709] [    INFO] - Evaluation Precision: 0.90000 | Recall: 0.85714 | F1: 0.87805
+[2022-09-14 03:13:59,893] [    INFO] - -----------------------------
+[2022-09-14 03:13:59,893] [    INFO] - Class Name: X的实验室检查
+[2022-09-14 03:13:59,894] [    INFO] - Evaluation Precision: 0.71429 | Recall: 0.55556 | F1: 0.62500
+[2022-09-14 03:14:00,057] [    INFO] - -----------------------------
+[2022-09-14 03:14:00,058] [    INFO] - Class Name: X的影像学检查
+[2022-09-14 03:14:00,058] [    INFO] - Evaluation Precision: 0.69231 | Recall: 0.45000 | F1: 0.54545
+```
+
 可配置参数说明：
 
 - `model_path`: 进行评估的模型文件夹路径，路径下需包含模型权重文件`pytorch_model.bin`及配置文件`config.json`。
 - `test_path`: 进行评估的测试集文件。
-- `batch_size`: 批处理大小，请结合显存情况进行调整，若出现显存不足，请适当调低这一参数，默认为16。
+- `batch_size`: 批处理大小，请结合机器情况进行调整，默认为16。
 - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
 - `device`: 选用进行训练的设备，可选`cpu`或`gpu`。
 
-#### 定制模型一键预测
+<a name="定制模型一键预测"></a>
+
+#### 4.5 定制模型一键预测
 
 `UIEPredictor`装载定制模型，通过`task_path`指定模型权重文件的路径，路径下需要包含训练好的模型权重文件`pytorch_model.bin`。
 
@@ -550,23 +642,29 @@ python evaluate.py \
           'text': '114'}]}]
 ```
 
-#### Few-Shot实验
+<a name="实验指标"></a>
+
+#### 4.6 实验指标
 
 我们在互联网、医疗、金融三大垂类自建测试集上进行了实验：
 
 <table>
 <tr><th row_span='2'><th colspan='2'>金融<th colspan='2'>医疗<th colspan='2'>互联网
 <tr><td><th>0-shot<th>5-shot<th>0-shot<th>5-shot<th>0-shot<th>5-shot
-<tr><td>uie-base (12L768H)<td><b>46.43</b><td><b>70.92</b><td><b>71.83</b><td><b>85.72</b><td><b>78.33</b><td><b>81.86</b>
+<tr><td>uie-base (12L768H)<td>46.43<td>70.92<td><b>71.83</b><td>85.72<td>78.33<td>81.86
 <tr><td>uie-medium (6L768H)<td>41.11<td>64.53<td>65.40<td>75.72<td>78.32<td>79.68
 <tr><td>uie-mini (6L384H)<td>37.04<td>64.65<td>60.50<td>78.36<td>72.09<td>76.38
 <tr><td>uie-micro (4L384H)<td>37.53<td>62.11<td>57.04<td>75.92<td>66.00<td>70.22
 <tr><td>uie-nano (4L312H)<td>38.94<td>66.83<td>48.29<td>76.74<td>62.86<td>72.35
+<tr><td>uie-m-large (24L1024H)<td><b>49.35</b><td><b>74.55</b><td>70.50<td><b>92.66</b><td><b>78.49</b><td><b>83.02</b>
+<tr><td>uie-m-base (12L768H)<td>38.46<td>74.31<td>63.37<td>87.32<td>76.27<td>80.13
 </table>
 
-0-shot表示无训练数据直接通过```UIEPredictor```进行预测，5-shot表示基于5条标注数据进行模型微调。实验表明UIE在垂类场景可以通过少量数据（few-shot）进一步提升效果。
+0-shot表示无训练数据直接通过```UIEPredictor```进行预测，5-shot表示每个类别包含5条标注数据进行模型微调。**实验表明UIE在垂类场景可以通过少量数据（few-shot）进一步提升效果**。
 
-#### Python部署
+<a name="模型部署"></a>
+
+#### 4.7 模型部署
 
 以下是UIE Python端的部署流程，包括环境准备、模型导出和使用示例。
 
@@ -591,13 +689,13 @@ python evaluate.py \
     如需使用半精度（FP16）部署，请确保GPU设备的CUDA计算能力 (CUDA Compute Capability) 大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。
     更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)
 
-<a name="模型导出"></a>
+
 - 模型导出
 
   将训练后的动态图参数导出为静态图参数：
 
   ```shell
-  python export_model.py --model_path=./checkpoint/model_best --output_path=./export
+  python export_model.py --model_path ./checkpoint/model_best --output_path ./export
   ```
 
   可配置参数说明：

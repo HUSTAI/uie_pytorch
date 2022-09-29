@@ -248,5 +248,6 @@ if __name__ == "__main__":
                         help="Use early stopping while training")
 
     args = parser.parse_args()
+    # yapf: enable
 
     do_train()

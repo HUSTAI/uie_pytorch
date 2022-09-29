@@ -14,10 +14,13 @@
 
 from model import UIE
 import argparse
+from functools import partial
+
 import torch
-from utils import SpanEvaluator, IEDataset, logger, tqdm
 from transformers import BertTokenizerFast
 from torch.utils.data import DataLoader
+
+from utils import IEMapDataset, SpanEvaluator, IEDataset, convert_example, get_relation_type_dict, logger, tqdm, unify_prompt_name
 
 
 @torch.no_grad()
@@ -95,11 +98,52 @@ def do_eval():
 
     test_data_loader = DataLoader(
         test_ds, batch_size=args.batch_size, shuffle=False)
-    metric = SpanEvaluator()
-    precision, recall, f1 = evaluate(
-        model, metric, test_data_loader, args.device)
-    logger.info("Evaluation precision: %.5f, recall: %.5f, F1: %.5f" %
-                (precision, recall, f1))
+    class_dict = {}
+    relation_data = []
+    if args.debug:
+        for data in test_ds.dataset:
+            class_name = unify_prompt_name(data['prompt'])
+            # Only positive examples are evaluated in debug mode
+            if len(data['result_list']) != 0:
+                if "的" not in data['prompt']:
+                    class_dict.setdefault(class_name, []).append(data)
+                else:
+                    relation_data.append((data['prompt'], data))
+        relation_type_dict = get_relation_type_dict(relation_data)
+    else:
+        class_dict["all_classes"] = test_ds
+
+    for key in class_dict.keys():
+        if args.debug:
+            test_ds = IEMapDataset(class_dict[key], tokenizer=tokenizer,
+                                   max_seq_len=args.max_seq_len)
+        else:
+            test_ds = class_dict[key]
+
+        test_data_loader = DataLoader(
+            test_ds, batch_size=args.batch_size, shuffle=False)
+        metric = SpanEvaluator()
+        precision, recall, f1 = evaluate(
+            model, metric, test_data_loader, args.device)
+        logger.info("-----------------------------")
+        logger.info("Class Name: %s" % key)
+        logger.info("Evaluation Precision: %.5f | Recall: %.5f | F1: %.5f" %
+                    (precision, recall, f1))
+
+    if args.debug and len(relation_type_dict.keys()) != 0:
+        for key in relation_type_dict.keys():
+            test_ds = IEMapDataset(relation_type_dict[key], tokenizer=tokenizer,
+                                   max_seq_len=args.max_seq_le)
+
+            test_data_loader = DataLoader(
+                test_ds, batch_size=args.batch_size, shuffle=False)
+            metric = SpanEvaluator()
+            precision, recall, f1 = evaluate(
+                model, metric, test_data_loader, args.device)
+            logger.info("-----------------------------")
+            logger.info("Class Name: X的%s" % key)
+            logger.info("Evaluation Precision: %.5f | Recall: %.5f | F1: %.5f" %
+                        (precision, recall, f1))
 
 
 if __name__ == "__main__":
@@ -116,7 +160,10 @@ if __name__ == "__main__":
                         help="The maximum total input sequence length after tokenization.")
     parser.add_argument("-D", '--device', choices=['cpu', 'gpu'], default="gpu",
                         help="Select which device to run model, defaults to gpu.")
+    parser.add_argument("--debug", action='store_true',
+                        help="Precision, recall and F1 score are calculated for each class separately if this option is enabled.")
 
     args = parser.parse_args()
+    # yapf: enable
 
     do_eval()
