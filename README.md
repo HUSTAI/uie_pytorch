@@ -6,7 +6,7 @@ PyTorch版功能介绍
 - `convert.py`: 自动下载并转换模型，详见[开箱即用](#开箱即用)。
 - `doccano.py`: 转换标注数据，详见[数据标注](#数据标注)。
 - `evaluate.py`: 评估模型，详见[模型评估](#模型评估)。
-- `export_model.py`: 导出ONNX推理模型，详见[模型导出](#模型导出)。
+- `export_model.py`: 导出ONNX推理模型，详见[模型部署](#模型部署)。
 - `finetune.py`: 微调训练，详见[模型微调](#模型微调)。
 - `model.py`: 模型定义。
 - `uie_predictor.py`: 推理类。
