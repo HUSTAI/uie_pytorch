@@ -19,6 +19,7 @@ import os
 import pickle
 import shutil
 import numpy as np
+from base64 import b64decode
 
 import torch
 try:
@@ -40,11 +41,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_v1.0/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json"
         }
     },
@@ -54,11 +55,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_medium_v1.0/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_medium/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json",
         }
     },
@@ -68,11 +69,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_mini_v1.0/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_mini/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json",
         }
     },
@@ -82,11 +83,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_micro_v1.0/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_micro/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json",
         }
     },
@@ -96,11 +97,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_nano_v1.0/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_nano/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json",
         }
     },
@@ -110,11 +111,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_medical_base_v0.1/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base/tokenizer_config.json",
         }
     },
@@ -124,11 +125,11 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_en_v1.1/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_en/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_en/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_en/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_base_en/tokenizer_config.json",
         }
     },
@@ -139,11 +140,11 @@ MODEL_MAP = {
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base_v1.0/model_state.pdparams",
     #         "model_config.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/model_config.json",
-    #         "vocab_file":
+    #         "vocab.txt":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/vocab.txt",
-    #         "special_tokens_map":
+    #         "special_tokens_map.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/special_tokens_map.json",
-    #         "tokenizer_config":
+    #         "tokenizer_config.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/tokenizer_config.json",
     #         "sentencepiece_model_file":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
@@ -156,11 +157,11 @@ MODEL_MAP = {
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large_v1.0/model_state.pdparams",
     #         "model_config.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/model_config.json",
-    #         "vocab_file":
+    #         "vocab.txt":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/vocab.txt",
-    #         "special_tokens_map":
+    #         "special_tokens_map.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/special_tokens_map.json",
-    #         "tokenizer_config":
+    #         "tokenizer_config.json":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/tokenizer_config.json",
     #         "sentencepiece_model_file":
     #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
@@ -173,53 +174,67 @@ MODEL_MAP = {
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_tiny_v0.1/model_state.pdparams",
             "model_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_tiny/model_config.json",
-            "vocab_file":
+            "vocab.txt":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_tiny/vocab.txt",
-            "special_tokens_map":
+            "special_tokens_map.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_tiny/special_tokens_map.json",
-            "tokenizer_config":
+            "tokenizer_config.json":
             "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_tiny/tokenizer_config.json"
+        }
+    },
+    "ernie-3.0-base-zh": {
+        "resource_file_urls": {
+            "model_state.pdparams":
+            "https://bj.bcebos.com/paddlenlp/models/transformers/ernie_3.0/ernie_3.0_base_zh.pdparams",
+            "model_config.json":
+            "base64:ew0KICAiYXR0ZW50aW9uX3Byb2JzX2Ryb3BvdXRfcHJvYiI6IDAuMSwNCiAgImhpZGRlbl9hY3QiOiAiZ2VsdSIsDQogICJoaWRkZW5fZHJvcG91dF9wcm9iIjogMC4xLA0KICAiaGlkZGVuX3NpemUiOiA3NjgsDQogICJpbml0aWFsaXplcl9yYW5nZSI6IDAuMDIsDQogICJtYXhfcG9zaXRpb25fZW1iZWRkaW5ncyI6IDIwNDgsDQogICJudW1fYXR0ZW50aW9uX2hlYWRzIjogMTIsDQogICJudW1faGlkZGVuX2xheWVycyI6IDEyLA0KICAidGFza190eXBlX3ZvY2FiX3NpemUiOiAzLA0KICAidHlwZV92b2NhYl9zaXplIjogNCwNCiAgInVzZV90YXNrX2lkIjogdHJ1ZSwNCiAgInZvY2FiX3NpemUiOiA0MDAwMCwNCiAgImluaXRfY2xhc3MiOiAiRXJuaWVNb2RlbCINCn0=",
+            "vocab.txt":
+            "https://bj.bcebos.com/paddlenlp/models/transformers/ernie_3.0/ernie_3.0_base_zh_vocab.txt",
+            "special_tokens_map.json":
+            "base64:eyJ1bmtfdG9rZW4iOiAiW1VOS10iLCAic2VwX3Rva2VuIjogIltTRVBdIiwgInBhZF90b2tlbiI6ICJbUEFEXSIsICJjbHNfdG9rZW4iOiAiW0NMU10iLCAibWFza190b2tlbiI6ICJbTUFTS10ifQ==",
+            "tokenizer_config.json":
+            "base64:eyJkb19sb3dlcl9jYXNlIjogdHJ1ZSwgInVua190b2tlbiI6ICJbVU5LXSIsICJzZXBfdG9rZW4iOiAiW1NFUF0iLCAicGFkX3Rva2VuIjogIltQQURdIiwgImNsc190b2tlbiI6ICJbQ0xTXSIsICJtYXNrX3Rva2VuIjogIltNQVNLXSIsICJ0b2tlbml6ZXJfY2xhc3MiOiAiRXJuaWVUb2tlbml6ZXIifQ=="
         }
     }
 }
 
 
-def build_params_map(attention_num=12):
+def build_params_map(model_prefix='encoder', attention_num=12):
     """
     build params map from paddle-paddle's ERNIE to transformer's BERT
     :return:
     """
     weight_map = collections.OrderedDict({
-        'encoder.embeddings.word_embeddings.weight': "encoder.embeddings.word_embeddings.weight",
-        'encoder.embeddings.position_embeddings.weight': "encoder.embeddings.position_embeddings.weight",
-        'encoder.embeddings.token_type_embeddings.weight': "encoder.embeddings.token_type_embeddings.weight",
-        'encoder.embeddings.task_type_embeddings.weight': "encoder.embeddings.task_type_embeddings.weight",
-        'encoder.embeddings.layer_norm.weight': 'encoder.embeddings.LayerNorm.gamma',
-        'encoder.embeddings.layer_norm.bias': 'encoder.embeddings.LayerNorm.beta',
+        f'{model_prefix}.embeddings.word_embeddings.weight': "encoder.embeddings.word_embeddings.weight",
+        f'{model_prefix}.embeddings.position_embeddings.weight': "encoder.embeddings.position_embeddings.weight",
+        f'{model_prefix}.embeddings.token_type_embeddings.weight': "encoder.embeddings.token_type_embeddings.weight",
+        f'{model_prefix}.embeddings.task_type_embeddings.weight': "encoder.embeddings.task_type_embeddings.weight",
+        f'{model_prefix}.embeddings.layer_norm.weight': 'encoder.embeddings.LayerNorm.gamma',
+        f'{model_prefix}.embeddings.layer_norm.bias': 'encoder.embeddings.LayerNorm.beta',
     })
     # add attention layers
     for i in range(attention_num):
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.q_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.query.weight'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.q_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.query.bias'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.k_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.key.weight'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.k_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.key.bias'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.v_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.value.weight'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.v_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.value.bias'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.out_proj.weight'] = f'encoder.encoder.layer.{i}.attention.output.dense.weight'
-        weight_map[f'encoder.encoder.layers.{i}.self_attn.out_proj.bias'] = f'encoder.encoder.layer.{i}.attention.output.dense.bias'
-        weight_map[f'encoder.encoder.layers.{i}.norm1.weight'] = f'encoder.encoder.layer.{i}.attention.output.LayerNorm.gamma'
-        weight_map[f'encoder.encoder.layers.{i}.norm1.bias'] = f'encoder.encoder.layer.{i}.attention.output.LayerNorm.beta'
-        weight_map[f'encoder.encoder.layers.{i}.linear1.weight'] = f'encoder.encoder.layer.{i}.intermediate.dense.weight'
-        weight_map[f'encoder.encoder.layers.{i}.linear1.bias'] = f'encoder.encoder.layer.{i}.intermediate.dense.bias'
-        weight_map[f'encoder.encoder.layers.{i}.linear2.weight'] = f'encoder.encoder.layer.{i}.output.dense.weight'
-        weight_map[f'encoder.encoder.layers.{i}.linear2.bias'] = f'encoder.encoder.layer.{i}.output.dense.bias'
-        weight_map[f'encoder.encoder.layers.{i}.norm2.weight'] = f'encoder.encoder.layer.{i}.output.LayerNorm.gamma'
-        weight_map[f'encoder.encoder.layers.{i}.norm2.bias'] = f'encoder.encoder.layer.{i}.output.LayerNorm.beta'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.q_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.query.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.q_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.query.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.k_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.key.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.k_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.key.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.v_proj.weight'] = f'encoder.encoder.layer.{i}.attention.self.value.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.v_proj.bias'] = f'encoder.encoder.layer.{i}.attention.self.value.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.out_proj.weight'] = f'encoder.encoder.layer.{i}.attention.output.dense.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.self_attn.out_proj.bias'] = f'encoder.encoder.layer.{i}.attention.output.dense.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.norm1.weight'] = f'encoder.encoder.layer.{i}.attention.output.LayerNorm.gamma'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.norm1.bias'] = f'encoder.encoder.layer.{i}.attention.output.LayerNorm.beta'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.linear1.weight'] = f'encoder.encoder.layer.{i}.intermediate.dense.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.linear1.bias'] = f'encoder.encoder.layer.{i}.intermediate.dense.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.linear2.weight'] = f'encoder.encoder.layer.{i}.output.dense.weight'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.linear2.bias'] = f'encoder.encoder.layer.{i}.output.dense.bias'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.norm2.weight'] = f'encoder.encoder.layer.{i}.output.LayerNorm.gamma'
+        weight_map[f'{model_prefix}.encoder.layers.{i}.norm2.bias'] = f'encoder.encoder.layer.{i}.output.LayerNorm.beta'
     # add pooler
     weight_map.update(
         {
-            'encoder.pooler.dense.weight': 'encoder.pooler.dense.weight',
-            'encoder.pooler.dense.bias': 'encoder.pooler.dense.bias',
+            f'{model_prefix}.pooler.dense.weight': 'encoder.pooler.dense.weight',
+            f'{model_prefix}.pooler.dense.bias': 'encoder.pooler.dense.bias',
             'linear_start.weight': 'linear_start.weight',
             'linear_start.bias': 'linear_start.bias',
             'linear_end.weight': 'linear_end.weight',
@@ -235,7 +250,8 @@ def extract_and_convert(input_dir, output_dir):
     logger.info('=' * 20 + 'save config file' + '=' * 20)
     config = json.load(
         open(os.path.join(input_dir, 'model_config.json'), 'rt', encoding='utf-8'))
-    config = config['init_args'][0]
+    if 'init_args' in config:
+        config = config['init_args'][0]
     config["architectures"] = ["UIE"]
     config['layer_norm_eps'] = 1e-12
     del config['init_class']
@@ -282,6 +298,8 @@ def extract_and_convert(input_dir, output_dir):
     logger.info('=' * 20 + 'extract weights' + '=' * 20)
     state_dict = collections.OrderedDict()
     weight_map = build_params_map(attention_num=config['num_hidden_layers'])
+    weight_map.update(build_params_map(
+        'ernie', attention_num=config['num_hidden_layers']))
     if paddle_installed:
         import paddle.fluid.dygraph as D
         from paddle import fluid
@@ -319,7 +337,15 @@ def check_model(input_model):
         for key, val in resource_file_urls.items():
             file_path = os.path.join(input_model, key)
             if not os.path.exists(file_path):
-                get_path_from_url(val, input_model)
+                if val.startswith('base64:'):
+                    base64data = b64decode(val.replace(
+                        'base64:', '').encode('utf-8'))
+                    with open(file_path, 'wb') as f:
+                        f.write(base64data)
+                else:
+                    download_path = get_path_from_url(val, input_model)
+                    if download_path != file_path:
+                        shutil.move(download_path, file_path)
 
 
 def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
@@ -403,7 +429,7 @@ def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
 def do_main():
     check_model(args.input_model)
     extract_and_convert(args.input_model, args.output_model)
-    if not args.no_validate_output:
+    if not (args.no_validate_output or 'ernie' in args.input_model):
         if paddle_installed:
             try:
                 from paddlenlp.transformers import ErnieTokenizer

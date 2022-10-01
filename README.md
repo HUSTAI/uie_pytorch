@@ -108,9 +108,15 @@ python convert.py --no_validate_output
   - `uie-nano`
   - `uie-medical-base`
   - `uie-tiny` (弃用，已改为`uie-medium`)
+  - `uie-base-en`
+  - `ernie-3.0-base-zh`*
 
 - `output_model`: 输出的模型的文件夹，默认为`uie_base_pytorch`。
 - `no_validate_output`：是否关闭对输出模型的验证，默认打开。
+
+\* : 使用`ernie-3.0-base-zh`时不会验证模型，需要微调后才能用于预测
+
+\*\* : `uie-m-base`和`uie-m-large`模型需要`Ernie-M`模型，暂时还不支持
 
 <a name="实体抽取"></a>
 
