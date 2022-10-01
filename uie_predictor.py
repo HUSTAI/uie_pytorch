@@ -126,8 +126,8 @@ class UIEPredictor(object):
         self._device = device
         self._position_prob = position_prob
         self._max_seq_len = max_seq_len
-        self._batch_size = 64
-        self._split_sentence = False
+        self._batch_size = batch_size
+        self._split_sentence = split_sentence
         self._use_fp16 = use_fp16
 
         self._schema_tree = None
