@@ -30,7 +30,7 @@ except (ImportError, ModuleNotFoundError):
     from utils import get_path_from_url
     paddle_installed = False
 
-from model import UIE
+from model import UIE, UIEM
 from utils import logger
 
 MODEL_MAP = {
@@ -134,39 +134,39 @@ MODEL_MAP = {
         }
     },
     # uie-m模型需要Ernie-M模型
-    # "uie-m-base": {
-    #     "resource_file_urls": {
-    #         "model_state.pdparams":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base_v1.0/model_state.pdparams",
-    #         "model_config.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/model_config.json",
-    #         "vocab.txt":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/vocab.txt",
-    #         "special_tokens_map.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/special_tokens_map.json",
-    #         "tokenizer_config.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/tokenizer_config.json",
-    #         "sentencepiece_model_file":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
+    "uie-m-base": {
+        "resource_file_urls": {
+            "model_state.pdparams":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base_v1.0/model_state.pdparams",
+            "model_config.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/model_config.json",
+            "vocab.txt":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/vocab.txt",
+            "special_tokens_map.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/special_tokens_map.json",
+            "tokenizer_config.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/tokenizer_config.json",
+            "sentencepiece.bpe.model":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
 
-    #     }
-    # },
-    # "uie-m-large": {
-    #     "resource_file_urls": {
-    #         "model_state.pdparams":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large_v1.0/model_state.pdparams",
-    #         "model_config.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/model_config.json",
-    #         "vocab.txt":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/vocab.txt",
-    #         "special_tokens_map.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/special_tokens_map.json",
-    #         "tokenizer_config.json":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/tokenizer_config.json",
-    #         "sentencepiece_model_file":
-    #         "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
-    #     }
-    # },
+        }
+    },
+    "uie-m-large": {
+        "resource_file_urls": {
+            "model_state.pdparams":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large_v1.0/model_state.pdparams",
+            "model_config.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/model_config.json",
+            "vocab.txt":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/vocab.txt",
+            "special_tokens_map.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/special_tokens_map.json",
+            "tokenizer_config.json":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_large/tokenizer_config.json",
+            "sentencepiece.bpe.model":
+            "https://bj.bcebos.com/paddlenlp/taskflow/information_extraction/uie_m_base/sentencepiece.bpe.model"
+        }
+    },
     # Rename to `uie-medium` and the name of `uie-tiny` will be deprecated in future.
     "uie-tiny": {
         "resource_file_urls": {
@@ -261,40 +261,22 @@ def extract_and_convert(input_dir, output_dir):
     json.dump(config, open(os.path.join(output_dir, 'config.json'),
               'wt', encoding='utf-8'), indent=4)
     logger.info('=' * 20 + 'save vocab file' + '=' * 20)
-    with open(os.path.join(input_dir, 'vocab.txt'), 'rt', encoding='utf-8') as f:
-        words = f.read().splitlines()
-    words_set = set()
-    words_duplicate_indices = []
-    for i in range(len(words)-1, -1, -1):
-        word = words[i]
-        if word in words_set:
-            words_duplicate_indices.append(i)
-        words_set.add(word)
-    for i, idx in enumerate(words_duplicate_indices):
-        words[idx] = chr(0x1F6A9+i)  # Change duplicated word to 🚩 LOL
-    with open(os.path.join(output_dir, 'vocab.txt'), 'wt', encoding='utf-8') as f:
-        for word in words:
-            f.write(word+'\n')
-    special_tokens_map = {
-        "unk_token": "[UNK]",
-        "sep_token": "[SEP]",
-        "pad_token": "[PAD]",
-        "cls_token": "[CLS]",
-        "mask_token": "[MASK]"
-    }
+    shutil.copy(os.path.join(input_dir, 'vocab.txt'),
+                os.path.join(output_dir, 'vocab.txt'))
+    special_tokens_map = json.load(open(os.path.join(
+        input_dir, 'special_tokens_map.json'), 'rt', encoding='utf-8'))
     json.dump(special_tokens_map, open(os.path.join(output_dir, 'special_tokens_map.json'),
               'wt', encoding='utf-8'))
-    tokenizer_config = {
-        "do_lower_case": True,
-        "unk_token": "[UNK]",
-        "sep_token": "[SEP]",
-        "pad_token": "[PAD]",
-        "cls_token": "[CLS]",
-        "mask_token": "[MASK]",
-        "tokenizer_class": "BertTokenizer"
-    }
+    tokenizer_config = json.load(
+        open(os.path.join(input_dir, 'tokenizer_config.json'), 'rt', encoding='utf-8'))
+    if tokenizer_config['tokenizer_class'] == 'ErnieTokenizer':
+        tokenizer_config['tokenizer_class'] = "BertTokenizer"
     json.dump(tokenizer_config, open(os.path.join(output_dir, 'tokenizer_config.json'),
               'wt', encoding='utf-8'))
+    spm_file = os.path.join(input_dir, 'sentencepiece.bpe.model')
+    if os.path.exists(spm_file):
+        shutil.copy(spm_file, os.path.join(
+            output_dir, 'sentencepiece.bpe.model'))
     logger.info('=' * 20 + 'extract weights' + '=' * 20)
     state_dict = collections.OrderedDict()
     weight_map = build_params_map(attention_num=config['num_hidden_layers'])
@@ -350,7 +332,7 @@ def check_model(input_model):
                         shutil.move(download_path, file_path)
 
 
-def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
+def validate_model(tokenizer, pt_model, pd_model, model_type='uie', atol: float = 1e-5):
 
     logger.info("Validating PyTorch model...")
 
@@ -365,6 +347,8 @@ def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
     paddle_inputs = {}
     for name, value in encoded_inputs.items():
         if name == "attention_mask":
+            if model_type == 'uie-m':
+                continue
             name = "att_mask"
         if name == "position_ids":
             name = "pos_ids"
@@ -375,6 +359,9 @@ def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
 
     torch_inputs = {}
     for name, value in encoded_inputs.items():
+        if name == "attention_mask":
+            if model_type == 'uie-m':
+                continue
         torch_inputs[name] = torch.tensor(value, dtype=torch.int64)
     torch_outputs = pt_model(**torch_inputs)
     torch_outputs_dict = {}
@@ -429,23 +416,35 @@ def validate_model(tokenizer, pt_model, pd_model: str, atol: float = 1e-5):
 
 
 def do_main():
+    if args.output_model is None:
+        args.output_model = args.input_model.replace('-', '_')+'_pytorch'
     check_model(args.input_model)
     extract_and_convert(args.input_model, args.output_model)
     if not (args.no_validate_output or 'ernie' in args.input_model):
         if paddle_installed:
             try:
-                from paddlenlp.transformers import ErnieTokenizer
-                from paddlenlp.taskflow.models import UIE as UIEPaddle
+                from paddlenlp.transformers import ErnieTokenizer, ErnieMTokenizer
+                from paddlenlp.taskflow.models import UIE as UIEPaddle, UIEM as UIEMPaddle
             except (ImportError, ModuleNotFoundError) as e:
                 raise ModuleNotFoundError(
                     'Module PaddleNLP is not installed. Try install paddlenlp or run convert.py with --no_validate_output') from e
-            tokenizer: ErnieTokenizer = ErnieTokenizer.from_pretrained(
-                args.input_model)
-            model = UIE.from_pretrained(args.output_model)
-            model.eval()
-            paddle_model = UIEPaddle.from_pretrained(args.input_model)
-            paddle_model.eval()
-            validate_model(tokenizer, model, paddle_model)
+            if 'uie-m' in args.input_model:
+                tokenizer: ErnieMTokenizer = ErnieMTokenizer.from_pretrained(
+                    args.input_model)
+                model = UIEM.from_pretrained(args.output_model)
+                model.eval()
+                paddle_model = UIEMPaddle.from_pretrained(args.input_model)
+                paddle_model.eval()
+                model_type = 'uie-m'
+            else:
+                tokenizer: ErnieTokenizer = ErnieTokenizer.from_pretrained(
+                    args.input_model)
+                model = UIE.from_pretrained(args.output_model)
+                model.eval()
+                paddle_model = UIEPaddle.from_pretrained(args.input_model)
+                paddle_model.eval()
+                model_type = 'uie'
+            validate_model(tokenizer, model, paddle_model, model_type)
         else:
             logger.warning("Skipping validating PyTorch model because paddle is not installed. "
                            "The outputs of the model may not be the same as Paddle model.")
@@ -455,7 +454,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_model", default="uie-base", type=str,
                         help="Directory of input paddle model.\n Will auto download model [uie-base/uie-tiny]")
-    parser.add_argument("-o", "--output_model", default="uie_base_pytorch", type=str,
+    parser.add_argument("-o", "--output_model", default=None, type=str,
                         help="Directory of output pytorch model")
     parser.add_argument("--no_validate_output", action="store_true",
                         help="Directory of output pytorch model")

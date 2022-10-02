@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import numpy as np
 import six
 
-from transformers import BertTokenizerFast
+
 import math
 import argparse
 import os.path
@@ -77,11 +78,15 @@ class ONNXInferBackend(object):
 class PyTorchInferBackend:
     def __init__(self,
                  model_path_prefix,
+                 multilingual=False,
                  device='cpu',
                  use_fp16=False):
-        from model import UIE
+        from model import UIE, UIEM
         logger.info(">>> [PyTorchInferBackend] Creating Engine ...")
-        self.model = UIE.from_pretrained(model_path_prefix)
+        if multilingual:
+            self.model = UIEM.from_pretrained(model_path_prefix)
+        else:
+            self.model = UIE.from_pretrained(model_path_prefix)
         self.model.eval()
         self.device = device
         if self.device == 'gpu':
@@ -114,13 +119,18 @@ class PyTorchInferBackend:
 
 class UIEPredictor(object):
 
-    def __init__(self, task_path, schema, engine='pytorch', device='cpu', position_prob=0.5, max_seq_len=512, batch_size=64, split_sentence=False, use_fp16=False):
+    def __init__(self, model, schema, task_path=None, schema_lang="zh", engine='pytorch', device='cpu', position_prob=0.5, max_seq_len=512, batch_size=64, split_sentence=False, use_fp16=False):
 
         assert isinstance(
             device, six.string_types
         ), "The type of device must be string."
         assert device in [
             'cpu', 'gpu'], "The device must be cpu or gpu."
+        if model in ['uie-m-base', 'uie-m-large']:
+            self._multilingual = True
+        else:
+            self._multilingual = False
+        self._model = model
         self._engine = engine
         self._task_path = task_path
         self._device = device
@@ -131,17 +141,32 @@ class UIEPredictor(object):
         self._use_fp16 = use_fp16
 
         self._schema_tree = None
+        self._is_en = True if model in ['uie-base-en'
+                                        ] or schema_lang == 'en' else False
         self.set_schema(schema)
         self._prepare_predictor()
 
     def _prepare_predictor(self):
-        self._tokenizer = BertTokenizerFast.from_pretrained(
-            self._task_path)
+        if self._task_path is None:
+            self._task_path = self._model.replace('-', '_')+'_pytorch'
+            if not os.path.exists(self._task_path):
+                from convert import check_model, extract_and_convert
+                check_model(self._model)
+                extract_and_convert(self._model, self._task_path)
+
+        if self._multilingual:
+            from tokenizer import ErnieMTokenizerFast
+            self._tokenizer = ErnieMTokenizerFast.from_pretrained(
+                self._task_path)
+        else:
+            from transformers import BertTokenizerFast
+            self._tokenizer = BertTokenizerFast.from_pretrained(
+                self._task_path)
         assert self._engine in ['pytorch',
                                 'onnx'], "engine must be pytorch or onnx!"
         if self._engine == 'pytorch':
             self.inference_backend = PyTorchInferBackend(
-                self._task_path, device=self._device, use_fp16=self._use_fp16)
+                self._task_path, multilingual=self._multilingual, device=self._device, use_fp16=self._use_fp16)
 
         if self._engine == 'onnx':
             self.inference_backend = ONNXInferBackend(
@@ -196,9 +221,21 @@ class UIEPredictor(object):
                         input_map[cnt] = []
                     else:
                         for p in pre:
+                            if self._is_en:
+                                if re.search(r'\[.*?\]$', node.name):
+                                    prompt_prefix = node.name[:node.name.find(
+                                        "[", 1)].strip()
+                                    cls_options = re.search(
+                                        r'\[.*?\]$', node.name).group()
+                                    # Sentiment classification of xxx [positive, negative]
+                                    prompt = prompt_prefix + p + " " + cls_options
+                                else:
+                                    prompt = node.name + p
+                            else:
+                                prompt = p + node.name
                             examples.append({
                                 "text": data,
-                                "prompt": dbc2sbc(p + node.name)
+                                "prompt": dbc2sbc(prompt)
                             })
                         input_map[cnt] = [i + idx for i in range(len(pre))]
                         idx += len(pre)
@@ -254,7 +291,11 @@ class UIEPredictor(object):
             for k, v in input_map.items():
                 for idx in v:
                     for i in range(len(result_list[idx])):
-                        prefix[k].append(result_list[idx][i]["text"] + "的")
+                        if self._is_en:
+                            prefix[k].append(" of " +
+                                             result_list[idx][i]["text"])
+                        else:
+                            prefix[k].append(result_list[idx][i]["text"] + "的")
 
             for child in node.children:
                 child.prefix = prefix
@@ -370,13 +411,17 @@ class UIEPredictor(object):
         attention_mask = []
         offset_maps = []
 
+        if self._multilingual:
+            padding_type = "max_length"
+        else:
+            padding_type = "longest"
         encoded_inputs = self._tokenizer(
             text=short_texts_prompts,
             text_pair=short_input_texts,
             stride=2,
             truncation=True,
             max_length=self._max_seq_len,
-            padding="longest",
+            padding=padding_type,
             add_special_tokens=True,
             return_offsets_mapping=True,
             return_tensors="np")
@@ -387,14 +432,27 @@ class UIEPredictor(object):
             token_type_ids = encoded_inputs["token_type_ids"][batch_start:batch_start+self._batch_size]
             attention_mask = encoded_inputs["attention_mask"][batch_start:batch_start+self._batch_size]
             offset_maps = encoded_inputs["offset_mapping"][batch_start:batch_start+self._batch_size]
-            input_dict = {
-                "input_ids": np.array(
-                    input_ids, dtype="int64"),
-                "token_type_ids": np.array(
-                    token_type_ids, dtype="int64"),
-                "attention_mask": np.array(
+            if self._multilingual:
+                input_ids = np.array(
+                    input_ids, dtype="int64")
+                attention_mask = np.array(
                     attention_mask, dtype="int64")
-            }
+                position_ids = (np.cumsum(np.ones_like(input_ids), axis=1)
+                                - np.ones_like(input_ids))*attention_mask
+                input_dict = {
+                    "input_ids": input_ids,
+                    "attention_mask": attention_mask,
+                    "position_ids": position_ids
+                }
+            else:
+                input_dict = {
+                    "input_ids": np.array(
+                        input_ids, dtype="int64"),
+                    "token_type_ids": np.array(
+                        token_type_ids, dtype="int64"),
+                    "attention_mask": np.array(
+                        attention_mask, dtype="int64")
+                }
 
             outputs = self.inference_backend.infer(input_dict)
             start_prob, end_prob = outputs[0], outputs[1]
@@ -544,10 +602,16 @@ def parse_args():
     # Required parameters
     parser.add_argument(
         "-m",
-        "--model_path_prefix",
+        "--model",
         type=str,
-        default='uie_base_pytorch',
-        help="The path prefix of inference model to be used.", )
+        default='uie-base',
+        help="The model to be used.", )
+    parser.add_argument(
+        "-t",
+        "--task_path",
+        type=str,
+        default=None,
+        help="The path prefix of custom inference model to be used.", )
     parser.add_argument(
         "-p",
         "--position_prob",
@@ -586,6 +650,7 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     args.schema = ['航母']
-    uie = UIEPredictor(task_path=args.model_path_prefix, schema=args.schema, engine=args.engine, device=args.device,
+    args.schema_lang = "en"
+    uie = UIEPredictor(model=args.model, task_path=args.task_path, schema_lang=args.schema_lang, schema=args.schema, engine=args.engine, device=args.device,
                        position_prob=args.position_prob, max_seq_len=args.max_seq_len, batch_size=64, split_sentence=False, use_fp16=args.use_fp16)
     print(uie("印媒所称的“印度第一艘国产航母”—“维克兰特”号"))
