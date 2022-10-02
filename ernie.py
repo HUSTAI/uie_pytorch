@@ -301,8 +301,8 @@ class ErnieEmbeddings(nn.Module):
                     input_shape[0], seq_length)
                 token_type_ids = buffered_token_type_ids_expanded
             else:
-                token_type_ids = torch.ones(
-                    input_shape, dtype=torch.long, device=self.position_ids.device) * self.task_id
+                token_type_ids = torch.zeros(
+                    input_shape, dtype=torch.long, device=self.position_ids.device)
 
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)
@@ -311,8 +311,8 @@ class ErnieEmbeddings(nn.Module):
 
         if self.use_task_id:
             if task_type_ids is None:
-                task_type_ids = torch.zeros(
-                    input_shape, dtype=torch.long, device=self.position_ids.device)
+                task_type_ids = torch.ones(
+                    input_shape, dtype=torch.long, device=self.position_ids.device) * self.task_id
             task_type_embeddings = self.task_type_embeddings(task_type_ids)
 
         embeddings = inputs_embeds + token_type_embeddings+task_type_embeddings
