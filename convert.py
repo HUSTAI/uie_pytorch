@@ -311,9 +311,11 @@ def extract_and_convert(input_dir, output_dir):
             open(os.path.join(input_dir, 'model_state.pdparams'), 'rb'))
         del paddle_paddle_params['StructuredToParameterName@@']
     for weight_name, weight_value in paddle_paddle_params.items():
+        transposed = ''
         if 'weight' in weight_name:
-            if 'encoder.encoder' in weight_name or 'pooler' in weight_name or 'linear' in weight_name:
+            if '.encoder' in weight_name or 'pooler' in weight_name or 'linear' in weight_name:
                 weight_value = weight_value.transpose()
+                transposed = '.T'
         # Fix: embedding error
         if 'word_embeddings.weight' in weight_name:
             weight_value[0, :] = 0
@@ -322,7 +324,7 @@ def extract_and_convert(input_dir, output_dir):
             continue
         state_dict[weight_map[weight_name]] = torch.FloatTensor(weight_value)
         logger.info(
-            f"{weight_name} -> {weight_map[weight_name]} {weight_value.shape}")
+            f"{weight_name}{transposed} -> {weight_map[weight_name]} {weight_value.shape}")
     torch.save(state_dict, os.path.join(output_dir, "pytorch_model.bin"))
 
 
