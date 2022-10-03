@@ -244,10 +244,11 @@ def build_params_map(model_prefix='encoder', attention_num=12):
     return weight_map
 
 
-def extract_and_convert(input_dir, output_dir):
+def extract_and_convert(input_dir, output_dir, verbose=False):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    logger.info('=' * 20 + 'save config file' + '=' * 20)
+    if verbose:
+        logger.info('=' * 20 + 'save config file' + '=' * 20)
     config = json.load(
         open(os.path.join(input_dir, 'model_config.json'), 'rt', encoding='utf-8'))
     if 'init_args' in config:
@@ -260,7 +261,8 @@ def extract_and_convert(input_dir, output_dir):
     config['intermediate_size'] = 4 * config['hidden_size']
     json.dump(config, open(os.path.join(output_dir, 'config.json'),
               'wt', encoding='utf-8'), indent=4)
-    logger.info('=' * 20 + 'save vocab file' + '=' * 20)
+    if verbose:
+        logger.info('=' * 20 + 'save vocab file' + '=' * 20)
     shutil.copy(os.path.join(input_dir, 'vocab.txt'),
                 os.path.join(output_dir, 'vocab.txt'))
     special_tokens_map = json.load(open(os.path.join(
@@ -277,7 +279,8 @@ def extract_and_convert(input_dir, output_dir):
     if os.path.exists(spm_file):
         shutil.copy(spm_file, os.path.join(
             output_dir, 'sentencepiece.bpe.model'))
-    logger.info('=' * 20 + 'extract weights' + '=' * 20)
+    if verbose:
+        logger.info('=' * 20 + 'extract weights' + '=' * 20)
     state_dict = collections.OrderedDict()
     weight_map = build_params_map(attention_num=config['num_hidden_layers'])
     weight_map.update(build_params_map(
@@ -302,11 +305,13 @@ def extract_and_convert(input_dir, output_dir):
         if 'word_embeddings.weight' in weight_name:
             weight_value[0, :] = 0
         if weight_name not in weight_map:
-            logger.info(f"{'='*20} [SKIP] {weight_name} {'='*20}")
+            if verbose:
+                logger.info(f"{'='*20} [SKIP] {weight_name} {'='*20}")
             continue
         state_dict[weight_map[weight_name]] = torch.FloatTensor(weight_value)
-        logger.info(
-            f"{weight_name}{transposed} -> {weight_map[weight_name]} {weight_value.shape}")
+        if verbose:
+            logger.info(
+                f"{weight_name}{transposed} -> {weight_map[weight_name]} {weight_value.shape}")
     torch.save(state_dict, os.path.join(output_dir, "pytorch_model.bin"))
 
 
@@ -419,7 +424,7 @@ def do_main():
     if args.output_model is None:
         args.output_model = args.input_model.replace('-', '_')+'_pytorch'
     check_model(args.input_model)
-    extract_and_convert(args.input_model, args.output_model)
+    extract_and_convert(args.input_model, args.output_model, verbose=True)
     if not (args.no_validate_output or 'ernie' in args.input_model):
         if paddle_installed:
             try:

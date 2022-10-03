@@ -147,6 +147,9 @@ class UIEPredictor(object):
         self._prepare_predictor()
 
     def _prepare_predictor(self):
+        assert self._engine in ['pytorch',
+                                'onnx'], "engine must be pytorch or onnx!"
+
         if self._task_path is None:
             self._task_path = self._model.replace('-', '_')+'_pytorch'
             if not os.path.exists(self._task_path):
@@ -162,13 +165,35 @@ class UIEPredictor(object):
             from transformers import BertTokenizerFast
             self._tokenizer = BertTokenizerFast.from_pretrained(
                 self._task_path)
-        assert self._engine in ['pytorch',
-                                'onnx'], "engine must be pytorch or onnx!"
+
         if self._engine == 'pytorch':
             self.inference_backend = PyTorchInferBackend(
                 self._task_path, multilingual=self._multilingual, device=self._device, use_fp16=self._use_fp16)
 
         if self._engine == 'onnx':
+            if os.path.exists(os.path.join(self._task_path, "pytorch_model.bin")) and not os.path.exists(os.path.join(self._task_path, "inference.onnx")):
+                from export_model import export_onnx
+                from model import UIE, UIEM
+                if self._multilingual:
+                    model = UIEM.from_pretrained(self._task_path)
+                else:
+                    model = UIE.from_pretrained(self._task_path)
+                input_names = [
+                    'input_ids',
+                    'token_type_ids',
+                    'attention_mask',
+                ]
+                output_names = [
+                    'start_prob',
+                    'end_prob'
+                ]
+                logger.info(
+                    "Converting to the inference model cost a little time.")
+                save_path = export_onnx(
+                    self._task_path, self._tokenizer, model, 'cpu', input_names, output_names)
+                logger.info(
+                    "The inference model save in the path:{}".format(save_path))
+                del model
             self.inference_backend = ONNXInferBackend(
                 self._task_path, device=self._device, use_fp16=self._use_fp16)
 

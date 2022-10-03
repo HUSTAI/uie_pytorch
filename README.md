@@ -2,6 +2,8 @@
 
 **迁移[PaddleNLP](https://github.com/PaddlePaddle/PaddleNLP)中的UIE模型到PyTorch上**
 
+* 2022-10-3: 新增对UIE-M系列模型的支持，增加了ErnieM的Tokenizer。ErnieMTokenizer使用C++实现的高性能分词算子FasterTokenizer进行文本预处理加速。需要通过`pip install faster_tokenizer`安装FasterTokenizer库后方可使用。
+
 PyTorch版功能介绍
 - `convert.py`: 自动下载并转换模型，详见[开箱即用](#开箱即用)。
 - `doccano.py`: 转换标注数据，详见[数据标注](#数据标注)。
@@ -84,7 +86,9 @@ UIE不限定行业领域和抽取目标，以下是一些零样本行业示例�
 
 ```uie_predictor```提供通用信息抽取、评价观点抽取等能力，可抽取多种类型的信息，包括但不限于命名实体识别（如人名、地名、机构名等）、关系（如电影的导演、歌曲的发行时间等）、事件（如某路口发生车祸、某地发生地震等）、以及评价维度、观点词、情感倾向等信息。用户可以使用自然语言自定义抽取目标，无需训练即可统一抽取输入文本中的对应信息。**实现开箱即用，并满足各类信息抽取需求**
 
-**自动下载并转换模型**，将自动下载Paddle版的`uie-base`模型到当前目录中，并生成PyTorch版模型`uie_base_pytorch`。
+```uie_predictor```现在可以自动下载模型了，**无需手动convert**，如果想手动转换模型，可以参照以下方法。
+
+**下载并转换模型**，将下载Paddle版的`uie-base`模型到当前目录中，并生成PyTorch版模型`uie_base_pytorch`。
 
 ```shell
 python convert.py
@@ -109,6 +113,8 @@ python convert.py --no_validate_output
   - `uie-medical-base`
   - `uie-tiny` (弃用，已改为`uie-medium`)
   - `uie-base-en`
+  - `uie-m-base`
+  - `uie-m-large`
   - `ernie-3.0-base-zh`*
 
 - `output_model`: 输出的模型的文件夹，默认为`uie_base_pytorch`。
@@ -116,7 +122,6 @@ python convert.py --no_validate_output
 
 \* : 使用`ernie-3.0-base-zh`时不会验证模型，需要微调后才能用于预测
 
-\*\* : `uie-m-base`和`uie-m-large`模型需要`Ernie-M`模型，暂时还不支持
 
 <a name="实体抽取"></a>
 
@@ -137,7 +142,7 @@ python convert.py --no_validate_output
   >>> from pprint import pprint
 
   >>> schema = ['时间', '选手', '赛事名称'] # Define the schema for entity extraction
-  >>> ie = UIEPredictor('./uie_base_pytorch', schema=schema)
+  >>> ie = UIEPredictor(model='uie-base', schema=schema)
   >>> pprint(ie("2月8日上午北京冬奥会自由式滑雪女子大跳台决赛中中国选手谷爱凌以188.25分获得金牌！")) # Better print results using pprint
   [{'时间': [{'end': 6,
             'probability': 0.9857378532924486,
@@ -185,7 +190,30 @@ python convert.py --no_validate_output
                 'text': 'M0级'}]}]
   ```
 
-- 关系抽取
+  - 例如抽取的目标实体类型是"person"和"organization"，schema构造如下：
+
+    ```text
+    ['person', 'organization']
+    ```
+
+    英文模型调用示例：
+
+    ```python
+    >>> from uie_predictor import UIEPredictor
+    >>> from pprint import pprint
+    >>> schema = ['Person', 'Organization']
+    >>> ie_en = UIEPredictor(model='uie-base-en', schema=schema)
+    >>> pprint(ie_en('In 1997, Steve was excited to become the CEO of Apple.'))
+    [{'Organization': [{'end': 53,
+                        'probability': 0.9985840259877357,
+                        'start': 48,
+                        'text': 'Apple'}],
+      'Person': [{'end': 14,
+                  'probability': 0.999631971804547,
+                  'start': 9,
+                  'text': 'Steve'}]}]
+    ```
+
 <a name="关系抽取"></a>
 
 #### 3.2 关系抽取
@@ -240,6 +268,37 @@ python convert.py --no_validate_output
               'text': '2022语言与智能技术竞赛'}]}]
   ```
 
+  - 例如以"person"作为抽取主体，抽取关系类型为"Company"和"Position", schema构造如下：
+
+    ```text
+    {
+      'Person': [
+        'Company',
+        'Position'
+      ]
+    }
+    ```
+
+    英文模型调用示例：
+
+    ```python
+    >>> schema = [{'Person': ['Company', 'Position']}]
+    >>> ie_en.set_schema(schema)
+    >>> pprint(ie_en('In 1997, Steve was excited to become the CEO of Apple.'))
+    [{'Person': [{'end': 14,
+                  'probability': 0.999631971804547,
+                  'relations': {'Company': [{'end': 53,
+                                            'probability': 0.9960158209451642,
+                                            'start': 48,
+                                            'text': 'Apple'}],
+                                'Position': [{'end': 44,
+                                              'probability': 0.8871063806420736,
+                                              'start': 41,
+                                              'text': 'CEO'}]},
+                  'start': 9,
+                  'text': 'Steve'}]}]
+    ```
+
 <a name="事件抽取"></a>
 
 #### 3.3 事件抽取
@@ -269,6 +328,8 @@ python convert.py --no_validate_output
   >>> ie('中国地震台网正式测定：5月16日06时08分在云南临沧市凤庆县(北纬24.34度，东经99.98度)发生3.5级地震，震源深度10千米。')
   [{'地震触发词': [{'text': '地震', 'start': 56, 'end': 58, 'probability': 0.9987181623528585, 'relations': {'地震强度': [{'text': '3.5级', 'start': 52, 'end': 56, 'probability': 0.9962985320905915}], '时间': [{'text': '5月16日06时08分', 'start': 11, 'end': 22, 'probability': 0.9882578028575182}], '震中位置': [{'text': '云南临沧市凤庆县(北纬24.34度，东经99.98度)', 'start': 23, 'end': 50, 'probability': 0.8551415716584501}], '震源深度': [{'text': '10千米', 'start': 63, 'end': 67, 'probability': 0.999158304648045}]}}]}]
   ```
+
+  - 英文模型**暂不支持事件抽取**
 
 <a name="评论观点抽取"></a>
 
@@ -315,6 +376,35 @@ python convert.py --no_validate_output
               'text': '店面'}]}]
   ```
 
+  - 英文模型schema构造如下：
+
+    ```text
+    {
+      'Aspect': [
+        'Opinion',
+        'Sentiment classification [negative, positive]'
+      ]
+    }
+    ```
+
+    调用示例：
+
+    ```python
+    >>> schema = [{'Aspect': ['Opinion', 'Sentiment classification [negative, positive]']}]
+    >>> ie_en.set_schema(schema)
+    >>> pprint(ie_en("The teacher is very nice."))
+    [{'Aspect': [{'end': 11,
+                  'probability': 0.4301476415932193,
+                  'relations': {'Opinion': [{'end': 24,
+                                            'probability': 0.9072940447883724,
+                                            'start': 15,
+                                            'text': 'very nice'}],
+                                'Sentiment classification [negative, positive]': [{'probability': 0.9998571920670685,
+                                                                                  'text': 'positive'}]},
+                  'start': 4,
+                  'text': 'teacher'}]}]
+    ```
+
 <a name="情感分类"></a>
 
 #### 3.5 情感分类
@@ -333,6 +423,21 @@ python convert.py --no_validate_output
   >>> ie('这个产品用起来真的很流畅，我非常喜欢')
   [{'情感倾向[正向，负向]': [{'text': '正向', 'probability': 0.9988661643929895}]}]
   ```
+
+    英文模型schema构造如下：
+
+    ```text
+    '情感倾向[正向，负向]'
+    ```
+
+    英文模型调用示例：
+
+    ```python
+    >>> schema = 'Sentiment classification [negative, positive]'
+    >>> ie_en.set_schema(schema)
+    >>> ie_en('I am sorry but this is the worst film I have ever seen in my life.')
+    [{'Sentiment classification [negative, positive]': [{'text': 'negative', 'probability': 0.9998415771287057}]}]
+    ```
 
 <a name="跨任务抽取"></a>
 
@@ -405,9 +510,44 @@ python convert.py --no_validate_output
   >>> from uie_predictor import UIEPredictor
 
   >>> schema = ['时间', '选手', '赛事名称']
-  >>> ie = UIEPredictor('./uie_nano_pytorch', schema=schema)
+  >>> ie = UIEPredictor('uie-nano', schema=schema)
   >>> ie("2月8日上午北京冬奥会自由式滑雪女子大跳台决赛中中国选手谷爱凌以188.25分获得金牌！")
   [{'时间': [{'text': '2月8日上午', 'start': 0, 'end': 6, 'probability': 0.6513581678349247}], '选手': [{'text': '谷爱凌', 'start': 28, 'end': 31, 'probability': 0.9819330659468051}], '赛事名称': [{'text': '北京冬奥会自由式滑雪女子大跳台决赛', 'start': 6, 'end': 23, 'probability': 0.4908131110420939}]}]
+  ```
+
+- `uie-m-base`和`uie-m-large`支持中英文混合抽取，调用示例：
+
+  ```python
+  >>> from pprint import pprint
+  >>> from uie_predictor import UIEPredictor
+
+  >>> schema = ['Time', 'Player', 'Competition', 'Score']
+  >>> ie = UIEPredictor(schema=schema, model="uie-m-base", schema_lang="en")
+  >>> pprint(ie(["2月8日上午北京冬奥会自由式滑雪女子大跳台决赛中中国选手谷爱凌以188.25分获得金牌！", "Rafael Nadal wins French Open Final!"]))
+  [{'Competition': [{'end': 23,
+                    'probability': 0.9373889907291257,
+                    'start': 6,
+                    'text': '北京冬奥会自由式滑雪女子大跳台决赛'}],
+    'Player': [{'end': 31,
+                'probability': 0.6981119555336441,
+                'start': 28,
+                'text': '谷爱凌'}],
+    'Score': [{'end': 39,
+              'probability': 0.9888507878270296,
+              'start': 32,
+              'text': '188.25分'}],
+    'Time': [{'end': 6,
+              'probability': 0.9784080036931151,
+              'start': 0,
+              'text': '2月8日上午'}]},
+  {'Competition': [{'end': 35,
+                    'probability': 0.9851549932171295,
+                    'start': 18,
+                    'text': 'French Open Final'}],
+    'Player': [{'end': 12,
+                'probability': 0.9379371275888104,
+                'start': 0,
+                'text': 'Rafael Nadal'}]}]
   ```
 
 <a name="更多配置"></a>
@@ -417,13 +557,15 @@ python convert.py --no_validate_output
 ```python
 >>> from uie_predictor import UIEPredictor
 
->>> ie = UIEPredictor('./uie_nano_pytorch',   
+>>> ie = UIEPredictor('uie_nano',   
                        schema=schema)  
 ```
 
+* `model`：选择任务使用的模型，默认为`uie-base`，可选有`uie-base`, `uie-medium`, `uie-mini`, `uie-micro`, `uie-nano`和`uie-medical-base`, `uie-base-en`。
 * `schema`：定义任务抽取目标，可参考开箱即用中不同任务的调用示例进行配置。
+* `schema_lang`：设置schema的语言，默认为`zh`, 可选有`zh`和`en`。因为中英schema的构造有所不同，因此需要指定schema的语言。该参数只对`uie-m-base`和`uie-m-large`模型有效。
 * `batch_size`：批处理大小，请结合机器情况进行调整，默认为1。
-* `task_path`：任务使用的模型。
+* `task_path`：设定自定义的模型。
 * `position_prob`：模型对于span的起始位置/终止位置的结果概率在0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
 * `use_fp16`：是否使用`fp16`进行加速，默认关闭。`fp16`推理速度更快。如果选择`fp16`，请先确保机器正确安装NVIDIA相关驱动和基础软件，**确保CUDA>=11.2，cuDNN>=8.1.1**，初次使用需按照提示安装相关依赖。其次，需要确保GPU设备的CUDA计算能力（CUDA Compute Capability）大于7.0，典型的设备包括V100、T4、A10、A100、GTX 20系列和30系列显卡等。更多关于CUDA Compute Capability和精度支持情况请参考NVIDIA文档：[GPU硬件与支持精度对照表](https://docs.nvidia.com/deeplearning/tensorrt/archives/tensorrt-840-ea/support-matrix/index.html#hardware-precision-matrix)。
 
@@ -628,7 +770,7 @@ python evaluate.py \
 
 >>> schema = ['出发地', '目的地', '费用', '时间']
 # 设定抽取目标和定制化模型权重路径
->>> my_ie = UIEPredictor('./checkpoint/model_best', schema=schema)
+>>> my_ie = UIEPredictor(model='uie-base',task_path='./checkpoint/model_best', schema=schema)
 >>> pprint(my_ie("城市内交通费7月5日金额114广州至佛山"))
 [{'出发地': [{'end': 17,
            'probability': 0.9975287467835301,
@@ -716,12 +858,12 @@ python evaluate.py \
     在CPU端，请使用如下命令进行部署
 
     ```shell
-    python uie_predictor.py --model_path_prefix ./export --engine onnx --device cpu
+    python uie_predictor.py --task_path ./export --engine onnx --device cpu
     ```
 
     可配置参数说明：
-
-    - `model_path_prefix`: 用于推理的ONNX模型文件路径，需加上文件前缀名称。例如模型文件路径为`./export/inference.onnx`，则传入`./export`。
+    - `model`：选择任务使用的模型，默认为`uie-base`，可选有`uie-base`, `uie-medium`, `uie-mini`, `uie-micro`, `uie-nano`和`uie-medical-base`, `uie-base-en`。
+    - `task_path`: 用于推理的ONNX模型文件所在文件夹。例如模型文件路径为`./export/inference.onnx`，则传入`./export`。如果不设置，将自动下载`model`对应的模型。
     - `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
     - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
     - `engine`: 可选值为`pytorch`和`onnx`。推理使用的推理引擎。
@@ -731,12 +873,12 @@ python evaluate.py \
     在GPU端，请使用如下命令进行部署
 
     ```shell
-    python uie_predictor.py --model_path_prefix ./export --engine onnx --device gpu --use_fp16
+    python uie_predictor.py --task_path ./export --engine onnx --device gpu --use_fp16
     ```
 
     可配置参数说明：
-
-    - `model_path_prefix`: 用于推理的ONNX模型文件路径，需加上文件前缀名称。例如模型文件路径为`./export/inference.onnx`，则传入`./export/inference`。
+    - `model`：选择任务使用的模型，默认为`uie-base`，可选有`uie-base`, `uie-medium`, `uie-mini`, `uie-micro`, `uie-nano`和`uie-medical-base`, `uie-base-en`。
+    - `task_path`: 用于推理的ONNX模型文件所在文件夹。例如模型文件路径为`./export/inference.onnx`，则传入`./export/inference`。如果不设置，将自动下载`model`对应的模型。
     - `use_fp16`: 是否使用FP16进行加速，默认关闭。
     - `position_prob`：模型对于span的起始位置/终止位置的结果概率0~1之间，返回结果去掉小于这个阈值的结果，默认为0.5，span的最终概率输出为起始位置概率和终止位置概率的乘积。
     - `max_seq_len`: 文本最大切分长度，输入超过最大长度时会对输入文本进行自动切分，默认为512。
