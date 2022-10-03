@@ -315,7 +315,9 @@ class ErnieEmbeddings(nn.Module):
                     input_shape, dtype=torch.long, device=self.position_ids.device) * self.task_id
             task_type_embeddings = self.task_type_embeddings(task_type_ids)
 
-        embeddings = inputs_embeds + token_type_embeddings+task_type_embeddings
+        embeddings = inputs_embeds + token_type_embeddings
+        if self.use_task_id:
+            embeddings += task_type_embeddings
         if self.position_embedding_type == "absolute":
             position_embeddings = self.position_embeddings(position_ids)
             embeddings += position_embeddings
