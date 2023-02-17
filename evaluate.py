@@ -133,7 +133,7 @@ def do_eval():
     if args.debug and len(relation_type_dict.keys()) != 0:
         for key in relation_type_dict.keys():
             test_ds = IEMapDataset(relation_type_dict[key], tokenizer=tokenizer,
-                                   max_seq_len=args.max_seq_le)
+                                   max_seq_len=args.max_seq_len)
 
             test_data_loader = DataLoader(
                 test_ds, batch_size=args.batch_size, shuffle=False)
