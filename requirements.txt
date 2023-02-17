@@ -1,0 +1,16 @@
+# -*- coding: utf-8 -*-
+numpy >=1.22
+six
+colorlog
+torch >=1.10,<2.0 # cpu版
+transformers >=4.18,<5.0
+packaging
+tqdm
+sentencepiece
+protobuf==3.19.0
+onnxruntime # cpu版
+
+# faster-tokenizer==0.2.0 # faster-tokenizer 已经废弃
+fast-tokenizer-python==1.0.0
+
+# paddlepaddle # paddlepaddle 是可选的

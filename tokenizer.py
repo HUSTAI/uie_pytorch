@@ -10,8 +10,14 @@ import sentencepiece as spm
 from transformers import SLOW_TO_FAST_CONVERTERS, PreTrainedTokenizerFast, requires_backends
 from transformers.convert_slow_tokenizer import Converter, SentencePieceExtractor
 
-from faster_tokenizer import Tokenizer, normalizers, pretokenizers, postprocessors
-from faster_tokenizer.models import BPE, Unigram
+try:
+    from fast_tokenizer import Tokenizer, normalizers, pretokenizers, postprocessors
+    from fast_tokenizer.models import BPE, Unigram
+except ImportError as e:
+    print('fast_tokenizer 未安装! pip install fast-tokenizer-python==1.0.0')
+    print(e)
+    from faster_tokenizer import Tokenizer, normalizers, pretokenizers, postprocessors
+    from faster_tokenizer.models import BPE, Unigram
 
 from transformers.tokenization_utils import AddedToken, PreTrainedTokenizer
 from transformers.utils import SPIECE_UNDERLINE
