@@ -415,7 +415,7 @@ class UIEPredictor(object):
             input_texts.append(inputs[i]["text"])
             prompts.append(inputs[i]["prompt"])
         # max predict length should exclude the length of prompt and summary tokens
-        max_predict_len = self._max_seq_len - len(max(prompts)) - 3
+        max_predict_len = self._max_seq_len - max(len(item) for item in prompts) - 3
 
         short_input_texts, self.input_mapping = self._auto_splitter(
             input_texts, max_predict_len, split_sentence=self._split_sentence)
